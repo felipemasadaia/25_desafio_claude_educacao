@@ -119,7 +119,7 @@ export function SeletorTema() {
             aria-label={o.rotulo}
             title={o.rotulo}
             onClick={() => defineTema(o.valor)}
-            className="grid h-8 w-8 place-items-center rounded-full transition-colors"
+            className="grid h-[44px] w-[44px] place-items-center rounded-full transition-colors"
             style={{
               background: ativo ? "var(--brand)" : "transparent",
               color: ativo ? "var(--brand-ink)" : "var(--muted)",

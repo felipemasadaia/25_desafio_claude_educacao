@@ -220,3 +220,16 @@ button, a[role="button"], [role="tab"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* Visível só para leitor de tela: dá o h1 da página sem repetir o título na tela. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

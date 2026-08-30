@@ -19,7 +19,7 @@ export function Botao({
   const base =
     "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all disabled:opacity-45 disabled:cursor-not-allowed";
   // Alvo de toque >=44px na face da família.
-  const dim = tamanho === "sm" ? "min-h-9 px-3 text-[0.8125rem]" : "min-h-11 px-4";
+  const dim = tamanho === "sm" ? "min-h-[36px] px-3 text-[0.8125rem]" : "min-h-[44px] px-4";
 
   const estilos: Record<string, React.CSSProperties> = {
     primario: { background: "var(--brand)", color: "var(--brand-ink)" },
@@ -235,7 +235,7 @@ export function Opcoes<T extends string>({
             role="radio"
             aria-checked={ativo}
             onClick={() => onChange(o.valor)}
-            className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors"
+            className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors"
             style={{
               background: ativo ? "var(--brand-suave)" : "var(--elevated)",
               border: `1px solid ${ativo ? "var(--brand)" : "var(--border-controle)"}`,

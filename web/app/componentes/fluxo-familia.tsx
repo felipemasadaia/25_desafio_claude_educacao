@@ -148,6 +148,7 @@ export function FluxoFamilia() {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 pb-20">
+      <h1 className="sr-only">Monte sua carteira de creches</h1>
       <Passos etapa={etapa} onIr={setEtapa} />
 
       {etapa === "local" && (
@@ -201,28 +202,28 @@ export function FluxoFamilia() {
                   />
                   <Botao
                     variante="fantasma"
-                    tamanho="sm"
                     onClick={() => movePrioridade(i, -1)}
                     disabled={i === 0}
                     aria-label={`Subir prioridade de ${a.rotulo}`}
+                    className="!px-2"
                   >
                     ↑
                   </Botao>
                   <Botao
                     variante="fantasma"
-                    tamanho="sm"
                     onClick={() => movePrioridade(i, 1)}
                     disabled={i === perfil.ancoras.length - 1}
                     aria-label={`Descer prioridade de ${a.rotulo}`}
+                    className="!px-2"
                   >
                     ↓
                   </Botao>
                   {perfil.ancoras.length > 1 && (
                     <Botao
                       variante="fantasma"
-                      tamanho="sm"
                       onClick={() => removeAncora(a.id)}
                       aria-label={`Remover ${a.rotulo}`}
+                      className="!px-2"
                     >
                       ✕
                     </Botao>
@@ -318,7 +319,7 @@ export function FluxoFamilia() {
                       role="checkbox"
                       aria-checked={marcado}
                       onClick={() => alternaCriterio(c.perg_id)}
-                      className="flex w-full min-h-11 items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors"
+                      className="flex w-full min-h-[44px] items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors"
                       style={{
                         background: marcado ? "var(--brand-suave)" : "var(--elevated)",
                         border: `1px solid ${marcado ? "var(--brand)" : "var(--border-controle)"}`,
@@ -367,7 +368,7 @@ export function FluxoFamilia() {
               }));
               setManual(null);
             }}
-            className="flex w-full min-h-11 items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors"
+            className="flex w-full min-h-[44px] items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors"
             style={{
               background: perfil.precisaAcessibilidade ? "var(--brand-suave)" : "var(--elevated)",
               border: `1px solid ${perfil.precisaAcessibilidade ? "var(--brand)" : "var(--border-controle)"}`,
@@ -478,7 +479,7 @@ function Passos({ etapa, onIr }: { etapa: Etapa; onIr: (e: Etapa) => void }) {
             type="button"
             onClick={() => onIr(e.id)}
             aria-current={ativo ? "step" : undefined}
-            className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-[0.8125rem] font-medium transition-colors"
+            className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-lg px-3 text-[0.8125rem] font-medium transition-colors"
             style={{
               background: ativo ? "var(--brand-suave)" : "transparent",
               color: ativo ? "var(--brand)" : feito ? "var(--ink)" : "var(--muted)",
@@ -684,7 +685,7 @@ function ResultadoCarteira({
                           onDefinirManual(c);
                           setTrocando(null);
                         }}
-                        className="flex w-full min-h-11 items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition-colors"
+                        className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition-colors"
                         style={{ background: "var(--elevated)" }}
                       >
                         <span className="min-w-0 flex-1 truncate text-[0.8125rem]">
@@ -756,7 +757,7 @@ function Personas({ onCarregar }: { onCarregar: (p: Perfil) => void }) {
             key={p.id}
             type="button"
             onClick={() => onCarregar(p.perfil)}
-            className="flex min-h-11 flex-col gap-1 rounded-lg p-3 text-left transition-colors"
+            className="flex min-h-[44px] flex-col gap-1 rounded-lg p-3 text-left transition-colors"
             style={{ background: "var(--elevated)", border: "1px solid var(--border)" }}
           >
             <span className="text-[0.875rem] font-semibold">{p.nome}</span>

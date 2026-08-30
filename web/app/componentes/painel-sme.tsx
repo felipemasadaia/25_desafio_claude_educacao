@@ -84,7 +84,7 @@ export function PainelSme() {
           <select
             value={cre}
             onChange={(e) => setCre(e.target.value === "todas" ? "todas" : Number(e.target.value))}
-            className="min-h-9 rounded-lg px-3 text-[0.875rem]"
+            className="min-h-[36px] rounded-lg px-3 text-[0.875rem]"
             style={{
               background: "var(--elevated)",
               color: "var(--ink)",
@@ -162,7 +162,7 @@ export function PainelSme() {
                 role="radio"
                 aria-checked={aPe === o.v}
                 onClick={() => setAPe(o.v)}
-                className="min-h-9 rounded-md px-3 text-[0.8125rem] font-medium transition-colors"
+                className="min-h-[36px] rounded-md px-3 text-[0.8125rem] font-medium transition-colors"
                 style={{
                   background: aPe === o.v ? "var(--brand)" : "transparent",
                   color: aPe === o.v ? "var(--brand-ink)" : "var(--muted)",
@@ -202,6 +202,10 @@ export function PainelSme() {
 
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[28rem] text-[0.8125rem]">
+              <caption className="sr-only">
+                Déficit territorial por CRE: pontos avaliados e quantos ficam sem âncora ao
+                alcance
+              </caption>
             <thead>
               <tr style={{ color: "var(--muted)" }}>
                 <Th align="left">CRE</Th>
@@ -235,6 +239,9 @@ export function PainelSme() {
         </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[34rem] text-[0.8125rem]">
+              <caption className="sr-only">
+                Bairros ordenados pela proporção de inscrições com uma única opção
+              </caption>
             <thead>
               <tr style={{ color: "var(--muted)" }}>
                 <Th align="left">Bairro</Th>
@@ -276,6 +283,9 @@ export function PainelSme() {
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[34rem] text-[0.8125rem]">
+                <caption className="sr-only">
+                  Unidades com folga histórica e baixa procura
+                </caption>
               <thead>
                 <tr style={{ color: "var(--muted)" }}>
                   <Th align="left">Unidade</Th>
@@ -337,6 +347,9 @@ function SerieAnual() {
   return (
     <div className="mt-4 overflow-x-auto">
       <table className="w-full min-w-[34rem] text-[0.8125rem]">
+          <caption className="sr-only">
+            Indicadores do processo seletivo por ano
+          </caption>
         <thead>
           <tr style={{ color: "var(--muted)" }}>
             <Th align="left">Ano</Th>
@@ -419,6 +432,7 @@ function Th({
 }) {
   return (
     <th
+      scope="col"
       className={`pb-2 pr-3 text-[0.6875rem] font-medium uppercase tracking-wide ${
         align === "left" ? "text-left" : "text-right"
       }`}
