@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ProvedorTema, SCRIPT_TEMA } from "./componentes/tema";
-import { Cabecalho } from "./componentes/cabecalho";
+import { NavegacaoLateral } from "./componentes/cabecalho";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -24,11 +24,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Antes da primeira pintura: sem isso, quem escolheu escuro leva flash branco. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
       </head>
-      <body className="flex min-h-full flex-col">
+      <body className="min-h-full">
         <ProvedorTema>
-          <Cabecalho />
-          <main className="flex-1">{children}</main>
-          <Rodape />
+          <NavegacaoLateral />
+          {/* Desloca o conteúdo pela largura da sidebar no desktop; no celular
+              a barra fica na base, então só reserva espaço embaixo. */}
+          <div className="flex min-h-full flex-col pb-[56px] md:pb-0 md:pl-60">
+            <main className="flex-1">{children}</main>
+            <Rodape />
+          </div>
         </ProvedorTema>
       </body>
     </html>
@@ -41,7 +45,7 @@ function Rodape() {
       className="mt-auto px-4 py-6"
       style={{ borderTop: "1px solid var(--border)", background: "var(--surface)" }}
     >
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-4xl md:mx-0 md:max-w-[70ch]">
         <h2 className="text-sm font-semibold">Sobre estes números</h2>
         <p
           className="mt-1.5 max-w-[70ch] text-label leading-relaxed"
