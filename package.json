@@ -1,0 +1,14 @@
+{
+  "name": "carteira-creche-rio",
+  "private": true,
+  "description": "Raiz do monorepo — delega build e start para web/ (Next.js).",
+  "scripts": {
+    "build": "cd web && npm ci && npm run build",
+    "start": "cd web && npm run start",
+    "dev": "cd web && npm run dev",
+    "test": "cd web && npm run test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

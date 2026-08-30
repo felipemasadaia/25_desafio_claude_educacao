@@ -68,7 +68,7 @@ export function Plataforma() {
             <span className="rounded-md px-2.5 py-1 text-[0.75rem] font-medium" style={{ background: "var(--s-surface)", color: "var(--s-muted)", border: "1px solid var(--s-border)" }}>Atualizado agora</span>
           </div>
 
-          {fase === "pre" && <FasePre recorte={recorte} />}
+          {fase === "pre" && <FasePre recorte={recorte} onRecorte={setRecorte} />}
           {fase === "demanda" && <FaseDemanda recorte={recorte} />}
           {fase === "crm" && <FaseCrm recorte={recorte} />}
 

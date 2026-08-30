@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ANO_ALVO, ANO_CICLO, num, pct, titulo, SERIE } from "@/lib/secretaria/dados";
 import { preInscricao, projecao, resumoPre, type LinhaPre, type Recorte, type StatusPre } from "@/lib/secretaria/fases";
 import { Barra, BarraComposta, Cartao, Indicador, Ressalva, Tabela, Tag, Td, Th, Tr, ordenaPor, useOrdenacao, type Tom } from "./ui";
+import { MapaCres, type CelulaCre } from "./mapa-cres";
 
 /**
  * Fase 1 — Pré-inscrição.
@@ -22,7 +23,7 @@ const ROTULO_STATUS: Record<StatusPre, { texto: string; tom: Tom }> = {
 
 type Coluna = "nome" | "bairro" | "status" | "vagas" | "procura" | "saldo";
 
-export function FasePre({ recorte }: { recorte: Recorte }) {
+export function FasePre({ recorte, onRecorte }: { recorte: Recorte; onRecorte: (r: Recorte) => void }) {
   const [filtro, setFiltro] = useState<StatusPre | "todos">("todos");
   const [busca, setBusca] = useState("");
   const { ordem, alterna, direcaoDe } = useOrdenacao<Coluna>({ coluna: "saldo", direcao: "asc" });
@@ -30,6 +31,34 @@ export function FasePre({ recorte }: { recorte: Recorte }) {
   const linhas = useMemo(() => preInscricao(recorte), [recorte]);
   const resumo = useMemo(() => resumoPre(linhas), [linhas]);
   const proj = useMemo(() => projecao(), []);
+
+  /*
+   * O mapa lê sempre a rede inteira, mesmo com uma CRE selecionada: ele é o
+   * seletor territorial, e uma coroplética de uma coordenadoria só não
+   * compara nada. O recorte aparece nele como destaque, não como filtro.
+   */
+  const porCre = useMemo<CelulaCre[]>(() => {
+    const todas = preInscricao({ cre: "todas" });
+    const acc = new Map<number, { faltam: number; unidades: number; pendentes: number }>();
+    for (const l of todas) {
+      if (l.cre === null) continue;
+      const a = acc.get(l.cre) ?? { faltam: 0, unidades: 0, pendentes: 0 };
+      // Só o saldo negativo entra: unidade sobrando não compensa unidade
+      // faltando na CRE ao lado — vaga não se transfere entre bairros.
+      if (l.saldo < 0) a.faltam += -l.saldo;
+      a.unidades += 1;
+      if (l.status === "pendente") a.pendentes += 1;
+      acc.set(l.cre, a);
+    }
+    return [...acc.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([cre, a]) => ({
+        cre: String(cre),
+        valor: a.faltam,
+        rotulo: num(a.faltam),
+        detalhe: `${num(a.faltam)} vagas a menos que a procura, em ${num(a.unidades)} unidades · ${num(a.pendentes)} sem responder ao formulário`,
+      }));
+  }, []);
 
   const visiveis = useMemo(() => {
     const b = busca.trim().toLowerCase();
@@ -152,6 +181,22 @@ export function FasePre({ recorte }: { recorte: Recorte }) {
         </Cartao>
 
         <div className="flex flex-col gap-4">
+          <Cartao
+            titulo="Onde falta vaga, por coordenadoria"
+            chamada={<>Soma do saldo negativo das unidades de cada CRE — quanto de vaga faltaria hoje para atender a procura conhecida. Toque numa CRE para recortar a fase inteira.</>}
+          >
+            <MapaCres
+              dados={porCre}
+              legenda="vagas a menos que a procura"
+              selecionada={recorte.cre === "todas" ? null : String(recorte.cre)}
+              onSelect={(cre) => onRecorte({ cre: cre === null ? "todas" : Number(cre) })}
+            />
+            <p className="mt-2 text-[0.75rem] leading-relaxed" style={{ color: "var(--s-muted)" }}>
+              Geometria oficial SME/IPP. CRE mais escura é onde a rede precisa
+              abrir mais vaga — não onde há mais unidade.
+            </p>
+          </Cartao>
+
           <Cartao titulo={`Visibilidade do ciclo ${ANO_CICLO}`} chamada="Série real de inscrições. A projeção é a média dos três últimos anos — com cinco pontos e uma pandemia no meio, tendência seria overfitting apresentado como previsão.">
             <ul className="flex flex-col gap-2.5">
               {SERIE.map((a) => {
