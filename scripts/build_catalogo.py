@@ -36,6 +36,18 @@ def norm(texto):
     return " ".join(s.upper().split())
 
 
+def texto(valor):
+    """Texto limpo ou None. Pandas devolve NaN (float) para célula vazia, e
+    NaN vira `NaN` literal no JSON — que JSON.parse recusa, derrubando o
+    catálogo inteiro no navegador."""
+    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+        return None
+    s = str(valor).strip()
+    if not s or s.lower() == "nan":
+        return None
+    return s
+
+
 def carrega_inscricoes():
     return pd.read_csv(
         BASES / "01_QueryA_InscricoesPorAno.csv.gz",
@@ -133,20 +145,24 @@ def main():
     for _, r in base.iterrows():
         cod = r["unidade"]
         det = perfil[perfil["unidade"] == cod]
+        n_hist = 0 if pd.isna(r.get("n_hist")) else int(r["n_hist"])
         unidades.append({
             "codigo": cod,
-            "nome": nomes.get(cod),
-            "tipo": r.get("Tipo"),
+            "nome": texto(nomes.get(cod)),
+            "tipo": texto(r.get("Tipo")),
             "cre": None if pd.isna(r.get("CRE")) else int(r["CRE"]),
-            "microarea": None if pd.isna(r.get("microárea")) else str(r["microárea"]),
-            "bairro": r.get("BAIRRO"),
-            "endereco": r.get("RUA"),
+            "microarea": texto(r.get("microárea")),
+            "bairro": texto(r.get("BAIRRO")),
+            "endereco": texto(r.get("RUA")),
             "lat": None if pd.isna(r.get("LATITUDE")) else round(float(r["LATITUDE"]), 6),
             "lng": None if pd.isna(r.get("LONGITUDE")) else round(float(r["LONGITUDE"]), 6),
             # dificuldade histórica out-of-sample
             "chance_hist": None if pd.isna(r.get("taxa_hist")) else round(float(r["taxa_hist"]), 4),
-            "n_hist": 0 if pd.isna(r.get("n_hist")) else int(r["n_hist"]),
-            "confiavel": bool(r.get("confiavel", False)),
+            # Unidade nova em 2025 não aparece no histórico: o outer join
+            # devolve NaN, que é truthy. Deriva do n_hist para o marcador
+            # nunca afirmar confiança que a amostra não sustenta.
+            "n_hist": n_hist,
+            "confiavel": n_hist >= MIN_OPCOES_HIST,
             # demanda observada
             "opcoes_2025": 0 if pd.isna(r.get("opcoes_2025")) else int(r["opcoes_2025"]),
             "criancas_2025": 0 if pd.isna(r.get("criancas_2025")) else int(r["criancas_2025"]),
@@ -155,8 +171,8 @@ def main():
             "matriculas": matriculas.get(cod, {}),
             "por_grupamento": [
                 {
-                    "grupamento": d["grupamento"],
-                    "horario": d["horario"],
+                    "grupamento": texto(d["grupamento"]),
+                    "horario": texto(d["horario"]),
                     "opcoes": int(d["opcoes"]),
                     "chance": round(float(d["taxa"]), 4),
                 }
@@ -228,7 +244,7 @@ def main():
             "bairros": bairros,
             "regua_pontuacao": regua,
             "serie_anual": por_ano,
-        }, f, ensure_ascii=False, separators=(",", ":"))
+        }, f, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
 
     mb = destino.stat().st_size / 1024 / 1024
     print(f"\nescrito: {destino}  ({mb:.1f} MB)")

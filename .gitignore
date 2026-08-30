@@ -4,6 +4,7 @@ dados_sme/
 # python
 .venv/
 __pycache__/
+.pytest_cache/
 
 # node
 node_modules/
