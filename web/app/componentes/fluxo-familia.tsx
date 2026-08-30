@@ -4,7 +4,12 @@ import { useCallback, useMemo, useState } from "react";
 import { catalogo, unidadesComGeo } from "@/lib/catalogo";
 import { tituloCase } from "@/lib/formato";
 import { PERSONAS } from "@/lib/personas";
-import { faixaDe, recomendar, TETO_AGREGADO } from "@/lib/recomendador/motor";
+import {
+  faixaDe,
+  probabilidadeAgregada,
+  recomendar,
+  TETO_AGREGADO,
+} from "@/lib/recomendador/motor";
 import type {
   AncoraLocalizacao,
   Grupamento,
@@ -13,6 +18,7 @@ import type {
   Modal,
   Perfil,
 } from "@/lib/recomendador/tipos";
+import { reavalia } from "@/lib/recomendador/edicao";
 import { CartaoUnidade } from "./cartao-unidade";
 import { Mapa, type PontoMapa } from "./mapa";
 import { Botao, Campo, Opcoes, SinalChance } from "./ui";
@@ -52,14 +58,34 @@ export function FluxoFamilia() {
     [perfil],
   );
 
-  /** A carteira exibida: a sugerida, ou a versão que a família editou. */
-  const itens: ItemCarteira[] = useMemo(() => {
-    if (!manual) return carteira.itens;
-    const porCodigo = new Map(
-      [...carteira.itens, ...carteira.alternativas].map((i) => [i.unidade.codigo, i]),
-    );
-    return manual.map((c) => porCodigo.get(c)).filter((i): i is ItemCarteira => !!i);
-  }, [carteira, manual]);
+  /**
+   * A carteira exibida: a sugerida, ou a versão que a família editou.
+   *
+   * Depois de uma troca os papéis vêm defasados do motor — a família pode
+   * ter removido a própria âncora sem que nada na tela mudasse. A
+   * reavaliação recalcula os papéis e devolve o aviso.
+   */
+  const { itens, perdeuAncora }: { itens: ItemCarteira[]; perdeuAncora: boolean } =
+    useMemo(() => {
+      if (!manual) return { itens: carteira.itens, perdeuAncora: false };
+      const porCodigo = new Map(
+        [...carteira.itens, ...carteira.alternativas].map((i) => [i.unidade.codigo, i]),
+      );
+      const escolhidos = manual
+        .map((c) => porCodigo.get(c))
+        .filter((i): i is ItemCarteira => !!i);
+      const tinhaAncora = carteira.itens.some((i) => i.papel === "ancora");
+      return reavalia(escolhidos, tinhaAncora);
+    }, [carteira, manual]);
+
+  /**
+   * Probabilidade da carteira que está na tela. Quando a família edita, o
+   * número precisa acompanhar — é o custo (ou o ganho) da mudança dela.
+   */
+  const probabilidadeExibida = useMemo(
+    () => (manual ? probabilidadeAgregada(itens.map((i) => i.chance)) : carteira.probabilidadeAgregada),
+    [manual, itens, carteira.probabilidadeAgregada],
+  );
 
   const pontos: PontoMapa[] = useMemo(() => {
     const naCarteira = new Set(itens.map((i) => i.unidade.codigo));
@@ -330,6 +356,51 @@ export function FluxoFamilia() {
                 );
               })}
           </ul>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={perfil.precisaAcessibilidade}
+            onClick={() => {
+              setPerfil((p) => ({
+                ...p,
+                precisaAcessibilidade: !p.precisaAcessibilidade,
+              }));
+              setManual(null);
+            }}
+            className="flex w-full min-h-11 items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors"
+            style={{
+              background: perfil.precisaAcessibilidade ? "var(--brand-suave)" : "var(--elevated)",
+              border: `1px solid ${perfil.precisaAcessibilidade ? "var(--brand)" : "var(--border-controle)"}`,
+            }}
+          >
+            <span
+              className="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded"
+              style={{
+                border: `2px solid ${perfil.precisaAcessibilidade ? "var(--brand)" : "var(--border-controle)"}`,
+                background: perfil.precisaAcessibilidade ? "var(--brand)" : "transparent",
+              }}
+            >
+              {perfil.precisaAcessibilidade && (
+                <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" aria-hidden="true">
+                  <path
+                    d="M2 6.5L4.5 9L10 3"
+                    fill="none"
+                    stroke="var(--brand-ink)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+            </span>
+            <span className="flex-1 text-[0.875rem] leading-snug">
+              A criança precisa de unidade acessível
+              <span className="mt-0.5 block text-[0.75rem]" style={{ color: "var(--muted)" }}>
+                Consideramos junto com a pontuação de educação especial.
+              </span>
+            </span>
+          </button>
+
           <div
             className="flex items-center justify-between rounded-lg px-4 py-3"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
@@ -352,9 +423,10 @@ export function FluxoFamilia() {
           <ResultadoCarteira
             itens={itens}
             deficit={carteira.deficitTerritorial}
-            probabilidade={carteira.probabilidadeAgregada}
+            probabilidade={probabilidadeExibida}
             melhorChance={carteira.melhorChanceDisponivel}
             editada={manual !== null}
+            perdeuAncora={perdeuAncora}
             probabilidadeSugerida={carteira.probabilidadeAgregada}
             onRestaurar={() => setManual(null)}
             alternativas={carteira.alternativas}
@@ -460,6 +532,8 @@ function ResultadoCarteira({
   probabilidade,
   melhorChance,
   editada,
+  perdeuAncora,
+  probabilidadeSugerida,
   onRestaurar,
   alternativas,
   onDefinirManual,
@@ -470,6 +544,7 @@ function ResultadoCarteira({
   probabilidade: number;
   melhorChance: number | null;
   editada: boolean;
+  perdeuAncora: boolean;
   probabilidadeSugerida: number;
   onRestaurar: () => void;
   alternativas: ItemCarteira[];
@@ -543,6 +618,22 @@ function ResultadoCarteira({
             </Botao>
           )}
         </div>
+        {editada && <Comparacao editada={probabilidade} sugerida={probabilidadeSugerida} />}
+        {perdeuAncora && (
+          <p
+            className="mt-2 rounded-lg px-3 py-2 text-[0.8125rem]"
+            style={{
+              background: "var(--chance-baixa-suave)",
+              color: "var(--chance-baixa)",
+              border: "1px solid var(--chance-baixa)",
+            }}
+            role="alert"
+          >
+            Sua carteira ficou sem nenhuma aposta segura. A decisão é sua — mas sem uma
+            unidade de vaga mais provável, a chance de não conseguir nenhuma vaga aumenta
+            bastante.
+          </p>
+        )}
         <p className="mt-2 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
           Com estas {itens.length} opções, a chance de conseguir vaga em pelo menos uma delas
           é{" "}
@@ -610,6 +701,38 @@ function ResultadoCarteira({
         ))}
       </ol>
     </>
+  );
+}
+
+/**
+ * O custo (ou ganho) da alteração que a família fez.
+ *
+ * Em faixas e em direção, nunca em pontos percentuais: a estimativa acerta
+ * a direção e erra a magnitude, e cravar "-7pp" seria precisão falsa.
+ */
+function Comparacao({ editada, sugerida }: { editada: number; sugerida: number }) {
+  const delta = editada - sugerida;
+  const relevante = Math.abs(delta) >= 0.02;
+  const piorou = delta < 0;
+
+  const cor = !relevante
+    ? "var(--muted)"
+    : piorou
+      ? "var(--chance-baixa)"
+      : "var(--chance-alta)";
+
+  return (
+    <p
+      className="mt-3 rounded-lg px-3 py-2 text-[0.8125rem]"
+      style={{ background: "var(--elevated)", color: cor, border: `1px solid ${cor}` }}
+      role="status"
+    >
+      {!relevante
+        ? "Sua mudança praticamente não altera a chance de conseguir vaga."
+        : piorou
+          ? "Com esta troca, sua chance de conseguir vaga ficou menor que a da carteira sugerida."
+          : "Com esta troca, sua chance de conseguir vaga ficou maior que a da carteira sugerida."}
+    </p>
   );
 }
 

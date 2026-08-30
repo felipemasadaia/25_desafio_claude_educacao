@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { catalogo, semCoordenada, unidadesComGeo } from "@/lib/catalogo";
+import { calculaCobertura } from "@/lib/cobertura";
 import { tituloCase } from "@/lib/formato";
 import { LIMIAR_ANCORA } from "@/lib/recomendador/motor";
 
@@ -53,6 +54,14 @@ export function PainelSme() {
         .slice(0, 12),
     [],
   );
+
+  /**
+   * Quanto do território não tem aposta segura ao alcance. Calculado nos
+   * dois modais porque a diferença é a própria política: quem depende do pé
+   * enfrenta um mapa muito menor.
+   */
+  const [aPe, setAPe] = useState(true);
+  const cobertura = useMemo(() => calculaCobertura(aPe), [aPe]);
 
   const serie = catalogo.serie_anual;
   const ultimo = serie[serie.length - 1];
@@ -125,6 +134,97 @@ export function PainelSme() {
           escolha melhor.
         </p>
         <SerieAnual />
+      </section>
+
+      <section className="mt-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-[1.375rem] font-semibold">Déficit territorial</h2>
+            <p className="mt-1 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
+              Onde uma família não encontraria nenhuma aposta segura ao alcance. Não é falha
+              silenciosa do recomendador: é exatamente o dado que distingue déficit real de
+              problema de informação.
+            </p>
+          </div>
+          <div
+            role="radiogroup"
+            aria-label="Modal de deslocamento considerado"
+            className="flex gap-0.5 rounded-lg p-0.5"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+          >
+            {[
+              { v: true, r: "A pé" },
+              { v: false, r: "Transporte" },
+            ].map((o) => (
+              <button
+                key={o.r}
+                type="button"
+                role="radio"
+                aria-checked={aPe === o.v}
+                onClick={() => setAPe(o.v)}
+                className="min-h-9 rounded-md px-3 text-[0.8125rem] font-medium transition-colors"
+                style={{
+                  background: aPe === o.v ? "var(--brand)" : "transparent",
+                  color: aPe === o.v ? "var(--brand-ink)" : "var(--muted)",
+                }}
+              >
+                {o.r}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Indicador
+            rotulo="Território sem aposta segura"
+            valor={`${Math.round((cobertura.semAncora / Math.max(1, cobertura.total)) * 100)}%`}
+            nota={`${cobertura.semAncora} de ${cobertura.total} pontos avaliados`}
+            destaque={cobertura.semAncora / Math.max(1, cobertura.total) > 0.2}
+          />
+          <Indicador
+            rotulo="Território coberto"
+            valor={cobertura.comAncora.toString()}
+            nota={`Com ao menos uma âncora em até ${aPe ? "2,5" : "7"} km`}
+          />
+          <Indicador
+            rotulo="CRE mais afetada"
+            valor={cobertura.porCre[0] ? `${cobertura.porCre[0].cre}ª` : "—"}
+            nota={
+              cobertura.porCre[0]
+                ? `${Math.round(
+                    (cobertura.porCre[0].semAncora / cobertura.porCre[0].total) * 100,
+                  )}% do território sem âncora ao alcance`
+                : undefined
+            }
+            destaque
+          />
+        </div>
+
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[28rem] text-[0.8125rem]">
+            <thead>
+              <tr style={{ color: "var(--muted)" }}>
+                <Th align="left">CRE</Th>
+                <Th>Pontos avaliados</Th>
+                <Th>Sem âncora ao alcance</Th>
+                <Th>Proporção</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {cobertura.porCre.map((c) => {
+                const prop = c.semAncora / Math.max(1, c.total);
+                return (
+                  <tr key={c.cre} style={{ borderTop: "1px solid var(--border)" }}>
+                    <Td align="left">{c.cre}ª CRE</Td>
+                    <Td>{c.total}</Td>
+                    <Td destaque={prop > 0.3}>{c.semAncora}</Td>
+                    <Td destaque={prop > 0.3}>{Math.round(prop * 100)}%</Td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="mt-8">
