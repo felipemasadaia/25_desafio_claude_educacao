@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SeletorTema } from "../componentes/tema";
+import { AbasPainel } from "../componentes/abas-painel";
 
 export const metadata: Metadata = {
   title: "Painel da SME · Carteira de creches",
@@ -27,11 +28,9 @@ export default function LayoutPainel({ children }: { children: React.ReactNode }
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <div className="flex min-w-0 items-baseline gap-2">
-          <p className="truncate text-sm font-semibold">Painel da rede</p>
-          <span className="hidden text-label sm:inline" style={{ color: "var(--muted)" }}>
-            SME · Rio de Janeiro
-          </span>
+        <div className="flex min-w-0 items-center gap-4">
+          <p className="hidden shrink-0 truncate text-sm font-semibold sm:block">Painel da rede</p>
+          <AbasPainel />
         </div>
         <SeletorTema />
       </header>

@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import { catalogo, semCoordenada, unidadesComGeo } from "@/lib/catalogo";
 import { calculaCobertura } from "@/lib/cobertura";
+import { bairrosDoRecorte, microareas } from "@/lib/territorio";
+import { MapaSme } from "./mapa-sme";
+import { NavSme } from "./nav-sme";
 import { tituloCase } from "@/lib/formato";
 import { LIMIAR_ANCORA } from "@/lib/recomendador/motor";
 
@@ -48,11 +51,26 @@ export function PainelSme() {
   /** Bairros com pior combinação de escolha ruim e sucesso baixo. */
   const bairrosCriticos = useMemo(
     () =>
-      [...catalogo.bairros]
+      [...bairrosDoRecorte(cre)]
         .filter((b) => b.inscricoes >= 200)
         .sort((a, b) => b.so_uma_opcao - a.so_uma_opcao)
         .slice(0, 12),
-    [],
+    [cre],
+  );
+
+  /** Descasamento: procura por aposta segura, no recorte de planejamento. */
+  const areas = useMemo(() => microareas(cre), [cre]);
+
+  /**
+   * As microáreas sem âncora são tantas que um corte simples no topo mostrava
+   * só elas — a razão numérica nunca aparecia. A lista junta as piores dos
+   * dois grupos para que as duas leituras fiquem visíveis.
+   */
+  const semAposta = useMemo(() => areas.filter((m) => m.descasamento === null), [areas]);
+  const comAposta = useMemo(() => areas.filter((m) => m.descasamento !== null), [areas]);
+  const destaqueAreas = useMemo(
+    () => [...semAposta.slice(0, 8), ...comAposta.slice(0, 6)],
+    [semAposta, comAposta],
   );
 
   /**
@@ -61,15 +79,17 @@ export function PainelSme() {
    * enfrenta um mapa muito menor.
    */
   const [aPe, setAPe] = useState(true);
-  const cobertura = useMemo(() => calculaCobertura(aPe), [aPe]);
+  const cobertura = useMemo(() => calculaCobertura(aPe, cre), [aPe, cre]);
 
   const serie = catalogo.serie_anual;
   const ultimo = serie[serie.length - 1];
   const primeiro = serie[0];
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto flex w-full max-w-[104rem] gap-8 px-4 pb-20 pt-6 xl:px-8">
+      <NavSme />
+      <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-display font-semibold">Planejamento da rede</h1>
           <p className="mt-1.5 max-w-[65ch] text-md" style={{ color: "var(--muted)" }}>
@@ -77,7 +97,7 @@ export function PainelSme() {
             significar que sobra vaga — ou que ninguém consegue chegar até ela.
           </p>
         </div>
-        <label className="flex flex-col gap-1">
+        <label className="flex items-center gap-2">
           <span className="text-label font-medium" style={{ color: "var(--muted)" }}>
             CRE
           </span>
@@ -116,27 +136,17 @@ export function PainelSme() {
         <Indicador
           rotulo="Preenchem uma só opção"
           valor={`${Math.round(ultimo.so_uma_opcao * 100)}%`}
-          nota={`Era ${Math.round(primeiro.so_uma_opcao * 100)}% em ${primeiro.ano}`}
+          nota={`Era ${Math.round(primeiro.so_uma_opcao * 100)}% em ${primeiro.ano} · rede inteira`}
           destaque
         />
         <Indicador
           rotulo="Média de opções"
           valor={ultimo.media_opcoes.toFixed(2)}
-          nota={`Era ${primeiro.media_opcoes.toFixed(2)} em ${primeiro.ano}`}
+          nota={`Era ${primeiro.media_opcoes.toFixed(2)} em ${primeiro.ano} · rede inteira`}
         />
       </section>
 
-      <section className="mt-8">
-        <h2 className="text-h2 font-semibold">Como o comportamento evoluiu</h2>
-        <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
-          A proporção de famílias que preenche uma única opção sobe todo ano, enquanto a
-          média de opções cai. A taxa de sucesso subiu — mas por mais oferta, não por
-          escolha melhor.
-        </p>
-        <SerieAnual />
-      </section>
-
-      <section className="mt-8">
+      <section id="territorio" className="mt-10 scroll-mt-20">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-h2 font-semibold">Déficit territorial</h2>
@@ -200,7 +210,11 @@ export function PainelSme() {
           />
         </div>
 
-        <div className="mt-3 overflow-x-auto">
+        <div className="mt-4">
+          <MapaSme cre={cre} />
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[28rem] text-sm">
               <caption className="sr-only">
                 Déficit territorial por CRE: pontos avaliados e quantos ficam sem âncora ao
@@ -231,42 +245,68 @@ export function PainelSme() {
         </div>
       </section>
 
-      <section className="mt-8">
-        <h2 className="text-h2 font-semibold">Onde a escolha falha mais</h2>
+      <div id="oferta" className="mt-10 grid scroll-mt-20 items-start gap-x-8 gap-y-8 xl:grid-cols-2">
+      <section>
+        <h2 className="text-h2 font-semibold">Descasamento por microárea</h2>
         <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
-          Bairros ordenados pela proporção de inscrições com uma única opção — onde a
-          comunicação rende mais.
+          Quanta procura existe para cada aposta segura disponível. Procura é fila, não
+          criança: a mesma criança aparece em até 5 filas. As microáreas{" "}
+          <strong style={{ color: "var(--ink)" }}>sem nenhuma aposta segura</strong> vêm
+          primeiro — ali a razão não existe, e é o caso mais grave, não o maior número.
         </p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[34rem] text-sm">
-              <caption className="sr-only">
-                Bairros ordenados pela proporção de inscrições com uma única opção
-              </caption>
-            <thead>
-              <tr style={{ color: "var(--muted)" }}>
-                <Th align="left">Bairro</Th>
-                <Th>Inscrições</Th>
-                <Th>Só uma opção</Th>
-                <Th>Média de opções</Th>
-                <Th>Taxa de sucesso</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {bairrosCriticos.map((b) => (
-                <tr key={b.bairro} style={{ borderTop: "1px solid var(--border)" }}>
-                  <Td align="left">{tituloCase(b.bairro)}</Td>
-                  <Td>{b.inscricoes.toLocaleString("pt-BR")}</Td>
-                  <Td destaque={b.so_uma_opcao > 0.5}>{Math.round(b.so_uma_opcao * 100)}%</Td>
-                  <Td>{b.media_opcoes.toFixed(2)}</Td>
-                  <Td destaque={b.taxa_sucesso < 0.6}>{Math.round(b.taxa_sucesso * 100)}%</Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p className="mt-2 text-label" style={{ color: "var(--muted)" }}>
+          {semAposta.length} de {areas.length} microáreas do recorte não têm nenhuma aposta
+          segura. Abaixo, as {Math.min(8, semAposta.length)} de maior procura e as{" "}
+          {Math.min(6, comAposta.length)} de pior razão entre as que têm.
+        </p>
+
+        <div className="mt-4 flex flex-col gap-1.5">
+          {destaqueAreas.map((m) => {
+            const maxProcura = Math.max(...destaqueAreas.map((a) => a.procura), 1);
+            const semAncora = m.descasamento === null;
+            return (
+              <div
+                key={m.microarea}
+                className="flex items-center gap-3 rounded-lg px-3 py-2"
+                style={{ background: "var(--surface)" }}
+              >
+                <span className="tnum w-16 shrink-0 text-sm font-medium">{m.microarea}</span>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <div
+                    className="h-2.5 rounded-full"
+                    style={{
+                      width: `${(m.procura / maxProcura) * 100}%`,
+                      minWidth: "0.5rem",
+                      background: semAncora ? "var(--chance-baixa)" : "var(--accent)",
+                    }}
+                  />
+                  <span className="tnum shrink-0 text-label" style={{ color: "var(--muted)" }}>
+                    {m.procura.toLocaleString("pt-BR")} pedidos
+                  </span>
+                </div>
+                <span
+                  className="shrink-0 text-right text-sm font-semibold"
+                  style={{ color: semAncora ? "var(--chance-baixa)" : "var(--ink)" }}
+                >
+                  {semAncora
+                    ? "sem aposta segura"
+                    : `${Math.round(m.descasamento!).toLocaleString("pt-BR")} por âncora`}
+                </span>
+              </div>
+            );
+          })}
         </div>
+        {areas.length === 0 && (
+          <p
+            className="mt-3 rounded-lg p-4 text-body"
+            style={{ background: "var(--surface)", color: "var(--muted)" }}
+          >
+            Nenhuma microárea no recorte selecionado.
+          </p>
+        )}
       </section>
 
-      <section className="mt-8">
+      <section>
         <h2 className="text-h2 font-semibold">Vacância crônica</h2>
         <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
           Unidades com folga histórica que quase ninguém escolhe. Antes de tratar como
@@ -311,7 +351,58 @@ export function PainelSme() {
         )}
       </section>
 
-      <section className="mt-8">
+      </div>
+
+      <div id="escolha" className="mt-10 grid scroll-mt-20 items-start gap-x-8 gap-y-8 xl:grid-cols-2">
+      <section>
+        <h2 className="text-h2 font-semibold">Como o comportamento evoluiu</h2>
+        <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
+          A proporção de famílias que preenche uma única opção sobe todo ano, enquanto a
+          média de opções cai. A taxa de sucesso subiu — mas por mais oferta, não por
+          escolha melhor.{" "}
+          <strong style={{ color: "var(--ink)" }}>Série da rede inteira</strong>, sem
+          recorte por CRE — a base anual não traz a CRE da inscrição.
+        </p>
+        <SerieAnual />
+      </section>
+
+      <section>
+        <h2 className="text-h2 font-semibold">Onde a escolha falha mais</h2>
+        <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
+          Bairros ordenados pela proporção de inscrições com uma única opção — onde a
+          comunicação rende mais.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[34rem] text-sm">
+            <caption className="sr-only">
+              Bairros ordenados pela proporção de inscrições com uma única opção
+            </caption>
+            <thead>
+              <tr style={{ color: "var(--muted)" }}>
+                <Th align="left">Bairro</Th>
+                <Th>Inscrições</Th>
+                <Th>Só uma opção</Th>
+                <Th>Média de opções</Th>
+                <Th>Taxa de sucesso</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {bairrosCriticos.map((b) => (
+                <tr key={b.bairro} style={{ borderTop: "1px solid var(--border)" }}>
+                  <Td align="left">{tituloCase(b.bairro)}</Td>
+                  <Td>{b.inscricoes.toLocaleString("pt-BR")}</Td>
+                  <Td destaque={b.so_uma_opcao > 0.5}>{Math.round(b.so_uma_opcao * 100)}%</Td>
+                  <Td>{b.media_opcoes.toFixed(2)}</Td>
+                  <Td destaque={b.taxa_sucesso < 0.6}>{Math.round(b.taxa_sucesso * 100)}%</Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      </div>
+
+      <section id="regua" className="mt-10 scroll-mt-20">
         <h2 className="text-h2 font-semibold">Régua de pontuação vigente</h2>
         <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
           O que governa a classificação em {catalogo.ano_alvo}. Nos dados, a pontuação é
@@ -336,6 +427,7 @@ export function PainelSme() {
           ))}
         </ul>
       </section>
+      </div>
     </div>
   );
 }

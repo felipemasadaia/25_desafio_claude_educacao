@@ -34,6 +34,22 @@ renomear sem atualizar este arquivo e a spec.
 - **Grupamento** — faixa etária curricular (Berçário, Maternal I, Maternal II).
 - **Déficit territorial** — não existe âncora da carteira dentro do alcance
   da família. Declarado, nunca mascarado.
+- **Microárea** — subdivisão territorial da CRE (`microarea`, ex. `10.11`).
+  É o recorte de planejamento do painel: menor que o bairro e alinhado à
+  estrutura administrativa que de fato aloca vaga.
+- **Procura** — pedidos que uma unidade recebeu no ano-alvo (`opcoes_2025`).
+  É fila, **não** criança: a mesma criança aparece em até 5 filas, e a soma
+  na rede (159.979) bate com inscrições × média de opções. Nunca comparar
+  procura com `bairros[].inscricoes`, que conta criança distinta (71.059) —
+  são unidades de medida diferentes.
+- **Descasamento** — a procura de uma microárea dividida pelo número de
+  âncoras da carteira que ela oferece. Alto significa muita gente disputando
+  poucas apostas seguras. Deliberadamente não é "demanda por vaga": o
+  catálogo não traz vaga ofertada por unidade (`matriculas` só existe em 74
+  de 872), e derivá-la do tipo seria inventar dado.
+- **Microárea sem aposta segura** — descasamento com denominador zero.
+  Categoria própria, nunca um número grande: sem âncora, a razão não existe,
+  e fingir que existe esconde a diferença entre "disputado" e "não tem".
 
 ## Invariantes que os testes protegem
 

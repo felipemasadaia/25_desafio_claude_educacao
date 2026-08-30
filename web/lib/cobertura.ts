@@ -34,16 +34,28 @@ export type Cobertura = {
   porCre: Array<{ cre: number; total: number; semAncora: number }>;
 };
 
-export function calculaCobertura(aPe: boolean): Cobertura {
+export function calculaCobertura(aPe: boolean, cre?: number | "todas"): Cobertura {
   const raio = aPe ? RAIO_PE_KM : RAIO_PADRAO_KM;
+
+  /**
+   * As âncoras nunca são filtradas por CRE, mesmo quando o painel está
+   * recortado: uma família na divisa alcança a creche da CRE vizinha, e
+   * cortar a borda inventaria um déficit que não existe no território.
+   * O recorte se aplica só aos pontos avaliados.
+   */
   const ancoras = unidadesComGeo.filter(
     (u) => u.confiavel && (u.chance_hist ?? 0) >= LIMIAR_ANCORA,
   );
 
+  const pontos =
+    cre === undefined || cre === "todas"
+      ? unidadesComGeo
+      : unidadesComGeo.filter((u) => u.cre === cre);
+
   const porCre = new Map<number, { total: number; semAncora: number }>();
   let comAncora = 0;
 
-  for (const ponto of unidadesComGeo) {
+  for (const ponto of pontos) {
     const alcanca = ancoras.some((a) => distanciaKm(coord(ponto), coord(a)) <= raio);
     if (alcanca) comAncora++;
 
@@ -56,9 +68,9 @@ export function calculaCobertura(aPe: boolean): Cobertura {
   }
 
   return {
-    total: unidadesComGeo.length,
+    total: pontos.length,
     comAncora,
-    semAncora: unidadesComGeo.length - comAncora,
+    semAncora: pontos.length - comAncora,
     // Ordena por proporção, não por contagem: uma CRE pequena com metade do
     // território descoberto é um problema maior que uma grande com um quinto.
     porCre: [...porCre.entries()]

@@ -29,6 +29,7 @@ import {
   CartaoDispensavel,
   Explicador,
   GlossarioPapeis,
+  ListaPassos,
   Ressalva,
 } from "./familia-explicadores";
 
@@ -376,8 +377,8 @@ export function FluxoFamilia() {
             />
           </Campo>
           <Campo
-            rotulo="Horário"
-            ajuda="A concorrência é bem diferente entre integral e parcial."
+            rotulo="Horário de que você precisa"
+            ajuda="A disputa é bem diferente entre os dois: costuma haver muito mais gente pedindo integral do que parcial."
           >
             <Opcoes<Horario>
               rotuloGrupo="Horário"
@@ -393,18 +394,33 @@ export function FluxoFamilia() {
             />
           </Campo>
           <Navegacao
-            voltar={() => setEtapa("local")}
-            proximo={() => setEtapa("questionario")}
+            voltar={() => irPara("local")}
+            proximo={() => irPara("questionario")}
           />
         </section>
       )}
 
       {etapa === "questionario" && (
-        <section className="mt-6 flex flex-col gap-5">
+        <section className="mt-5 flex flex-col gap-5">
           <Cabecalho
-            titulo="Sua situação"
-            texto="Estes critérios são os da régua oficial da SME e podem mudar muito a sua chance. Pule o que não souber responder — nada aqui trava o resultado."
+            titulo="Sua situação hoje"
+            texto="Marque o que valer para a sua família. Cada item soma pontos na inscrição — e ponto muda muito a sua chance de vaga."
           />
+          <CaixaOrientacao titulo="Por que estamos perguntando isso">
+            <p>
+              A Prefeitura ordena a fila de cada creche por pontos. Quem tem
+              mais pontos passa na frente. Esta é a mesma lista de critérios
+              que você vai ver na inscrição oficial.
+            </p>
+            <p>
+              <strong>Pule o que não souber ou não quiser responder.</strong>{" "}
+              Nada aqui é obrigatório e nada trava o resultado — só deixa a
+              estimativa mais próxima da sua realidade.
+            </p>
+          </CaixaOrientacao>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            Toque para marcar. O número à direita é quanto o item soma.
+          </p>
           <ul className="flex flex-col gap-2">
             {catalogo.regua_pontuacao
               .filter((c) => c.pontos > 0)
@@ -493,45 +509,67 @@ export function FluxoFamilia() {
               )}
             </span>
             <span className="flex-1 text-body leading-snug">
-              A criança precisa de unidade acessível
+              A criança precisa de creche acessível
               <span className="mt-0.5 block text-label" style={{ color: "var(--muted)" }}>
-                Consideramos junto com a pontuação de educação especial.
+                Isso conta pontos junto com educação especial. Mas não sabemos
+                quais creches são acessíveis — vamos lembrar você de confirmar
+                por telefone.
               </span>
             </span>
           </button>
 
+          {/*
+            A pontuação aparece aqui, e não só no final, porque é o retorno
+            imediato de cada item marcado: a família vê o número subir e
+            entende que a resposta dela mudou alguma coisa de verdade.
+          */}
           <div
-            className="flex items-center justify-between rounded-lg px-4 py-3"
+            className="rounded-lg px-4 py-3.5"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+            aria-live="polite"
           >
-            <span className="text-body font-medium">Sua pontuação</span>
-            <span className="tnum text-h2 font-semibold" style={{ color: "var(--brand)" }}>
-              {carteira.pontuacao}
-            </span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-body font-medium">Seus pontos até agora</span>
+              <span className="tnum text-h2 font-semibold" style={{ color: "var(--brand)" }}>
+                {carteira.pontuacao}
+              </span>
+            </div>
+            <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+              Quanto mais pontos, mais na frente da fila você fica em toda
+              creche que pedir.
+            </p>
           </div>
           <Navegacao
-            voltar={() => setEtapa("deslocamento")}
-            proximo={() => setEtapa("carteira")}
-            rotuloProximo="Ver minha carteira"
+            voltar={() => irPara("deslocamento")}
+            proximo={() => irPara("carteira")}
+            rotuloProximo="Ver as creches recomendadas"
           />
         </section>
       )}
 
       {etapa === "carteira" && (
-        <section className="mt-6 flex flex-col gap-5">
+        <section className="mt-5 flex flex-col gap-5">
+          <Cabecalho
+            titulo="Prontas: as creches que recomendamos para você"
+            texto="Esta é a sua lista, na ordem sugerida. Você pode trocar, reordenar ou ignorar tudo — a decisão é sua."
+          />
+
+          {itens.length > 0 && <ComoLer quantidade={itens.length} />}
+
           {perfil.precisaAcessibilidade && (
             <p
-              className="rounded-lg px-4 py-3 text-sm"
+              className="rounded-lg px-4 py-3 text-sm leading-relaxed"
               style={{
                 background: "var(--accent-suave)",
                 color: "var(--ink)",
                 border: "1px solid var(--accent)",
               }}
             >
-              Você informou que precisa de unidade acessível. Sua pontuação já considera
-              isso, mas as bases públicas da SME não dizem quais unidades são acessíveis —
-              confirme esse ponto diretamente com as creches da sua carteira antes de
-              decidir a ordem.
+              <strong>Lembrete sobre acessibilidade.</strong> Você disse que a
+              criança precisa de creche acessível, e isso já entrou nos seus
+              pontos. Mas as bases públicas da Prefeitura não dizem quais
+              creches são acessíveis — a gente prefere avisar a chutar. Ligue
+              para cada creche desta lista e confirme antes de decidir a ordem.
             </p>
           )}
           <ResultadoCarteira
@@ -553,13 +591,27 @@ export function FluxoFamilia() {
             disponiveis={[...itens, ...carteira.alternativas]}
             probabilidadeSugerida={carteira.probabilidadeAgregada}
           />
-          <Mapa
-            pontos={pontos}
-            ancoras={perfil.ancoras}
-            onSelecionarUnidade={setSelecionada}
-            unidadeSelecionada={selecionada}
+          <div className="flex flex-col gap-2">
+            <h2 className="text-h3 font-semibold">Onde ficam, no mapa</h2>
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
+              Os círculos maiores e cheios são as creches da sua lista. Os
+              menores são as outras opções que ficam no seu alcance. Toque em
+              qualquer um para ver o nome.
+            </p>
+            <Mapa
+              pontos={pontos}
+              ancoras={perfil.ancoras}
+              onSelecionarUnidade={setSelecionada}
+              unidadeSelecionada={selecionada}
+            />
+          </div>
+
+          <ProximoPasso />
+
+          <Navegacao
+            voltar={() => irPara("questionario")}
+            rotuloVoltar="Mudar minhas respostas"
           />
-          <Navegacao voltar={() => setEtapa("questionario")} />
         </section>
       )}
 
@@ -567,10 +619,71 @@ export function FluxoFamilia() {
         onCarregar={(p) => {
           setPerfil(p);
           setManual(null);
-          setEtapa("carteira");
+          irPara("carteira");
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Cartão de leitura da carteira, mostrado uma vez na entrega.
+ *
+ * A ordem das cinco opções só faz sentido para quem entende os papéis: sem
+ * isso, a lista parece um ranking de qualidade, e a âncora — que existe
+ * justamente para a família não sair sem vaga — vira "a pior da lista".
+ * Dispensável de propósito: útil na primeira leitura, ruído na quinta.
+ */
+function ComoLer({ quantidade }: { quantidade: number }) {
+  return (
+    <CartaoDispensavel titulo="Como ler esta página">
+      <p className="text-body leading-relaxed">
+        Encontramos {quantidade}{" "}
+        {quantidade === 1 ? "creche" : "creches"} para você. Elas não estão em
+        ordem da melhor para a pior: cada uma tem um papel diferente na sua
+        inscrição, e é a combinação delas que protege você.
+      </p>
+      <GlossarioPapeis />
+      <Ressalva>
+        A chance aparece como faixa, nunca como número exato. Ela vem do
+        histórico de 2021 a 2025 e indica a direção — não é uma promessa de
+        vaga.
+      </Ressalva>
+    </CartaoDispensavel>
+  );
+}
+
+/**
+ * O que fazer depois de fechar a carteira.
+ *
+ * A entrega não é a lista: é a inscrição feita no matrícula.rio. Sem este
+ * fecho, a família sai da ferramenta com uma boa decisão e nenhum caminho
+ * para executá-la.
+ */
+function ProximoPasso() {
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-h3 font-semibold">E agora, o que fazer</h2>
+      <ListaPassos
+        itens={[
+          {
+            titulo: "Anote as creches nesta ordem",
+            texto:
+              "Tire um print ou escreva num papel. Você vai precisar dos nomes na hora da inscrição.",
+          },
+          {
+            titulo: "Ligue para confirmar",
+            texto:
+              "Horário de funcionamento e acessibilidade não estão nas bases públicas. Uma ligação evita surpresa depois.",
+          },
+          {
+            titulo: "Inscreva-se no matrícula.rio",
+            texto:
+              "A inscrição oficial é lá, e só lá. Esta ferramenta ajuda você a escolher, mas não inscreve ninguém.",
+          },
+        ]}
+      />
+    </section>
   );
 }
 
@@ -625,16 +738,18 @@ function Navegacao({
   voltar,
   proximo,
   rotuloProximo = "Continuar",
+  rotuloVoltar = "Voltar",
 }: {
   voltar?: () => void;
   proximo?: () => void;
   rotuloProximo?: string;
+  rotuloVoltar?: string;
 }) {
   return (
     <div className="flex gap-2 pt-2">
       {voltar && (
         <Botao variante="secundario" onClick={voltar}>
-          Voltar
+          {rotuloVoltar}
         </Botao>
       )}
       {proximo && (
