@@ -6,19 +6,14 @@
  * única aposta segura, a interface avisa. Avisar, não bloquear — a spec é
  * explícita em que a família pode manter a creche que ela quer.
  */
-import { LIMIAR_ANCORA } from "./motor";
-import type { ItemCarteira, Papel } from "./tipos";
+import { decidePapel, sustentaAncora } from "./motor";
+import type { ItemCarteira } from "./tipos";
 
 export type CarteiraEditada = {
   itens: ItemCarteira[];
   /** A edição deixou a carteira sem nenhuma aposta segura. */
   perdeuAncora: boolean;
 };
-
-/** Uma unidade só sustenta o papel de âncora com amostra confiável. */
-function podeSerAncora(item: ItemCarteira): boolean {
-  return item.unidade.confiavel && (item.unidade.chance_hist ?? 0) >= LIMIAR_ANCORA;
-}
 
 /**
  * Recalcula os papéis da carteira depois de uma edição.
@@ -33,15 +28,12 @@ export function reavalia(
 ): CarteiraEditada {
   let ancoraUsada = false;
   const reavaliados = itens.map((item) => {
-    let papel: Papel;
-    if (podeSerAncora(item) && !ancoraUsada) {
-      papel = "ancora";
-      ancoraUsada = true;
-    } else if (item.chance < 0.25) {
-      papel = "sonho";
-    } else {
-      papel = "equilibrio";
-    }
+    const papel = decidePapel(
+      item.chance,
+      sustentaAncora(item.unidade.confiavel, item.unidade.chance_hist),
+      ancoraUsada,
+    );
+    if (papel === "ancora") ancoraUsada = true;
     return papel === item.papel ? item : { ...item, papel };
   });
 

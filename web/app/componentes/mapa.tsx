@@ -213,7 +213,7 @@ export function Mapa({
       </svg>
 
       <p
-        className="px-3 py-2 text-[0.6875rem]"
+        className="px-3 py-2 text-micro"
         style={{ color: "var(--muted)", borderTop: "1px solid var(--border)" }}
       >
         Mapa esquemático, sem escala cartográfica. Arraste um pino para corrigir a

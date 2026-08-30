@@ -5,7 +5,12 @@ import type { Perfil } from "./recomendador/tipos";
  *
  * Escolhidas para construir a narrativa em sequência: o caso difícil, o
  * mesmo caso com prioridade legal (prova de que o sistema entendeu a
- * política), e um caso real reconstruído da base de 2025.
+ * política), e uma família com vários pontos de referência.
+ *
+ * As coordenadas não são inventadas — foram escolhidas varrendo o catálogo
+ * atrás de territórios com déficit real. Numa versão anterior as personas
+ * caíam em Santa Cruz, que tem vacância alta: as três devolviam cinco
+ * "aposta segura" e a narrativa do caso difícil não se sustentava na tela.
  */
 export type Persona = {
   id: string;
@@ -14,7 +19,8 @@ export type Persona = {
   perfil: Perfil;
 };
 
-const SANTA_CRUZ = { lat: -22.9169, lng: -43.6845 };
+/** Rio das Pedras: déficit territorial real para quem anda a pé. */
+const RIO_DAS_PEDRAS = { lat: -22.976261, lng: -43.325334 };
 const CAMPO_GRANDE = { lat: -22.9035, lng: -43.5615 };
 
 export const PERSONAS: Persona[] = [
@@ -22,9 +28,9 @@ export const PERSONAS: Persona[] = [
     id: "deficit",
     nome: "Sem critério, sem carro",
     resumo:
-      "Santa Cruz, vai a pé, nenhum critério de pontuação. O caso difícil — é onde a âncora salva a inscrição.",
+      "Rio das Pedras, vai a pé, nenhum critério de pontuação. O caso difícil: nenhuma aposta segura ao alcance.",
     perfil: {
-      ancoras: [{ id: "casa", rotulo: "Casa", ...SANTA_CRUZ }],
+      ancoras: [{ id: "casa", rotulo: "Casa", ...RIO_DAS_PEDRAS }],
       modal: "pe",
       grupamento: "Maternal I",
       horario: "Integral",
@@ -38,7 +44,7 @@ export const PERSONAS: Persona[] = [
     resumo:
       "Perfil idêntico ao anterior, um único atributo trocado. As mesmas unidades mudam de leitura.",
     perfil: {
-      ancoras: [{ id: "casa", rotulo: "Casa", ...SANTA_CRUZ }],
+      ancoras: [{ id: "casa", rotulo: "Casa", ...RIO_DAS_PEDRAS }],
       modal: "pe",
       grupamento: "Maternal I",
       horario: "Integral",

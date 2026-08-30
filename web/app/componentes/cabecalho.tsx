@@ -30,7 +30,7 @@ export function Cabecalho() {
                 key={r.href}
                 href={r.href}
                 aria-current={ativo ? "page" : undefined}
-                className="flex min-h-[36px] items-center rounded-lg px-3 text-[0.8125rem] font-medium transition-colors"
+                className="flex min-h-[36px] items-center rounded-lg px-3 text-sm font-medium transition-colors"
                 style={{
                   background: ativo ? "var(--brand-suave)" : "transparent",
                   color: ativo ? "var(--brand)" : "var(--muted)",

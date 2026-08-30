@@ -51,9 +51,11 @@
   --t-display: 1.75rem;
   --t-h2: 1.375rem;
   --t-h3: 1.0625rem;
-  --t-body: 0.9375rem;
+  --t-md: 0.9375rem;
+  --t-body: 0.875rem;
   --t-sm: 0.8125rem;
   --t-label: 0.75rem;
+  --t-micro: 0.6875rem;
 
   --raio: 0.5rem;
   --raio-sm: 0.375rem;
@@ -162,6 +164,16 @@
   --color-chance-baixa-suave: var(--chance-baixa-suave);
   --color-chance-minima: var(--chance-minima);
   --color-chance-minima-suave: var(--chance-minima-suave);
+  /* A escala vira utilitário (text-display, text-body, ...) para os
+     componentes usarem o token em vez de reinventar o tamanho. */
+  --text-display: var(--t-display);
+  --text-h2: var(--t-h2);
+  --text-h3: var(--t-h3);
+  --text-md: var(--t-md);
+  --text-body: var(--t-body);
+  --text-sm: var(--t-sm);
+  --text-label: var(--t-label);
+  --text-micro: var(--t-micro);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius-token: var(--raio);

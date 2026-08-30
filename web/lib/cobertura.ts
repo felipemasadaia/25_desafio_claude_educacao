@@ -1,5 +1,5 @@
 import { unidadesComGeo } from "./catalogo";
-import { LIMIAR_ANCORA } from "./recomendador/motor";
+import { distanciaKm, LIMIAR_ANCORA } from "./recomendador/motor";
 import type { Unidade } from "./recomendador/tipos";
 
 /**
@@ -18,15 +18,9 @@ const RAIO_PADRAO_KM = 7;
 /** Alcance de quem vai a pé — o caso mais restrito, e o mais comum. */
 const RAIO_PE_KM = 2.5;
 
-function distanciaKm(a: Unidade, b: Unidade): number {
-  const R = 6371;
-  const rad = Math.PI / 180;
-  const dLat = (b.lat! - a.lat!) * rad;
-  const dLng = (b.lng! - a.lng!) * rad;
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(a.lat! * rad) * Math.cos(b.lat! * rad) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+/** Só entram unidades com coordenada; o cast reflete o filtro de `unidadesComGeo`. */
+function coord(u: Unidade): { lat: number; lng: number } {
+  return { lat: u.lat as number, lng: u.lng as number };
 }
 
 export type Cobertura = {
@@ -50,7 +44,7 @@ export function calculaCobertura(aPe: boolean): Cobertura {
   let comAncora = 0;
 
   for (const ponto of unidadesComGeo) {
-    const alcanca = ancoras.some((a) => distanciaKm(ponto, a) <= raio);
+    const alcanca = ancoras.some((a) => distanciaKm(coord(ponto), coord(a)) <= raio);
     if (alcanca) comAncora++;
 
     if (ponto.cre !== null) {

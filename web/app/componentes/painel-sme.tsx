@@ -71,20 +71,20 @@ export function PainelSme() {
     <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[1.75rem] font-semibold">Planejamento da rede</h1>
-          <p className="mt-1.5 max-w-[65ch] text-[0.9375rem]" style={{ color: "var(--muted)" }}>
+          <h1 className="text-display font-semibold">Planejamento da rede</h1>
+          <p className="mt-1.5 max-w-[65ch] text-md" style={{ color: "var(--muted)" }}>
             A fila registra escolhas, não necessidade. Uma unidade com fila zero pode
             significar que sobra vaga — ou que ninguém consegue chegar até ela.
           </p>
         </div>
         <label className="flex flex-col gap-1">
-          <span className="text-[0.75rem] font-medium" style={{ color: "var(--muted)" }}>
+          <span className="text-label font-medium" style={{ color: "var(--muted)" }}>
             CRE
           </span>
           <select
             value={cre}
             onChange={(e) => setCre(e.target.value === "todas" ? "todas" : Number(e.target.value))}
-            className="min-h-[36px] rounded-lg px-3 text-[0.875rem]"
+            className="min-h-[36px] rounded-lg px-3 text-body"
             style={{
               background: "var(--elevated)",
               color: "var(--ink)",
@@ -127,8 +127,8 @@ export function PainelSme() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-[1.375rem] font-semibold">Como o comportamento evoluiu</h2>
-        <p className="mt-1 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
+        <h2 className="text-h2 font-semibold">Como o comportamento evoluiu</h2>
+        <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
           A proporção de famílias que preenche uma única opção sobe todo ano, enquanto a
           média de opções cai. A taxa de sucesso subiu — mas por mais oferta, não por
           escolha melhor.
@@ -139,8 +139,8 @@ export function PainelSme() {
       <section className="mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-[1.375rem] font-semibold">Déficit territorial</h2>
-            <p className="mt-1 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
+            <h2 className="text-h2 font-semibold">Déficit territorial</h2>
+            <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
               Onde uma família não encontraria nenhuma aposta segura ao alcance. Não é falha
               silenciosa do recomendador: é exatamente o dado que distingue déficit real de
               problema de informação.
@@ -162,7 +162,7 @@ export function PainelSme() {
                 role="radio"
                 aria-checked={aPe === o.v}
                 onClick={() => setAPe(o.v)}
-                className="min-h-[36px] rounded-md px-3 text-[0.8125rem] font-medium transition-colors"
+                className="min-h-[36px] rounded-md px-3 text-sm font-medium transition-colors"
                 style={{
                   background: aPe === o.v ? "var(--brand)" : "transparent",
                   color: aPe === o.v ? "var(--brand-ink)" : "var(--muted)",
@@ -201,7 +201,7 @@ export function PainelSme() {
         </div>
 
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[28rem] text-[0.8125rem]">
+          <table className="w-full min-w-[28rem] text-sm">
               <caption className="sr-only">
                 Déficit territorial por CRE: pontos avaliados e quantos ficam sem âncora ao
                 alcance
@@ -232,13 +232,13 @@ export function PainelSme() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-[1.375rem] font-semibold">Onde a escolha falha mais</h2>
-        <p className="mt-1 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
+        <h2 className="text-h2 font-semibold">Onde a escolha falha mais</h2>
+        <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
           Bairros ordenados pela proporção de inscrições com uma única opção — onde a
           comunicação rende mais.
         </p>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[34rem] text-[0.8125rem]">
+          <table className="w-full min-w-[34rem] text-sm">
               <caption className="sr-only">
                 Bairros ordenados pela proporção de inscrições com uma única opção
               </caption>
@@ -267,22 +267,22 @@ export function PainelSme() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-[1.375rem] font-semibold">Vacância crônica</h2>
-        <p className="mt-1 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
+        <h2 className="text-h2 font-semibold">Vacância crônica</h2>
+        <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
           Unidades com folga histórica que quase ninguém escolhe. Antes de tratar como
           excesso de oferta, vale checar acesso: alta vacância também é sintoma de unidade
           que a família não consegue alcançar.
         </p>
         {vacancia.length === 0 ? (
           <p
-            className="mt-3 rounded-lg p-4 text-[0.875rem]"
+            className="mt-3 rounded-lg p-4 text-body"
             style={{ background: "var(--surface)", color: "var(--muted)" }}
           >
             Nenhuma unidade nesse padrão no recorte selecionado.
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-[0.8125rem]">
+            <table className="w-full min-w-[34rem] text-sm">
                 <caption className="sr-only">
                   Unidades com folga histórica e baixa procura
                 </caption>
@@ -312,8 +312,8 @@ export function PainelSme() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-[1.375rem] font-semibold">Régua de pontuação vigente</h2>
-        <p className="mt-1 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
+        <h2 className="text-h2 font-semibold">Régua de pontuação vigente</h2>
+        <p className="mt-1 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
           O que governa a classificação em {catalogo.ano_alvo}. Nos dados, a pontuação é
           ortogonal à qualidade da carteira: a prioridade existe no papel e se perde no
           formulário.
@@ -325,9 +325,9 @@ export function PainelSme() {
               className="flex items-center justify-between gap-4 rounded-lg px-3 py-2"
               style={{ background: "var(--surface)" }}
             >
-              <span className="text-[0.8125rem]">{c.texto}</span>
+              <span className="text-sm">{c.texto}</span>
               <span
-                className="tnum shrink-0 text-[0.8125rem] font-semibold"
+                className="tnum shrink-0 text-sm font-semibold"
                 style={{ color: c.pontos > 0 ? "var(--brand)" : "var(--muted)" }}
               >
                 {c.pontos} pts
@@ -346,7 +346,7 @@ function SerieAnual() {
 
   return (
     <div className="mt-4 overflow-x-auto">
-      <table className="w-full min-w-[34rem] text-[0.8125rem]">
+      <table className="w-full min-w-[34rem] text-sm">
           <caption className="sr-only">
             Indicadores do processo seletivo por ano
           </caption>
@@ -405,17 +405,17 @@ function Indicador({
       className="rounded-xl p-4"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      <p className="text-[0.75rem] font-medium" style={{ color: "var(--muted)" }}>
+      <p className="text-label font-medium" style={{ color: "var(--muted)" }}>
         {rotulo}
       </p>
       <p
-        className="tnum mt-1 text-[1.5rem] font-semibold"
+        className="tnum mt-1 text-display font-semibold"
         style={{ color: destaque ? "var(--chance-baixa)" : "var(--ink)" }}
       >
         {valor}
       </p>
       {nota && (
-        <p className="mt-0.5 text-[0.75rem]" style={{ color: "var(--muted)" }}>
+        <p className="mt-0.5 text-label" style={{ color: "var(--muted)" }}>
           {nota}
         </p>
       )}
@@ -433,7 +433,7 @@ function Th({
   return (
     <th
       scope="col"
-      className={`pb-2 pr-3 text-[0.6875rem] font-medium uppercase tracking-wide ${
+      className={`pb-2 pr-3 text-micro font-medium uppercase tracking-wide ${
         align === "left" ? "text-left" : "text-right"
       }`}
     >

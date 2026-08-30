@@ -115,13 +115,33 @@ def main():
     )
     atual["taxa_2025"] = atual["sucesso_2025"] / atual["opcoes_2025"]
 
-    # --- oferta por grupamento/horário, direto das inscrições ---
-    perfil = (
-        a[a["ano"] == ANO_ALVO]
+    # --- recorte por grupamento/horário ---
+    # A CHANCE vem só de anos anteriores (mesma regra de não-vazamento da
+    # chance histórica): é o número que a família vê, e calculá-lo com o
+    # ano avaliado invalidaria tudo que a interface apresenta.
+    # A PROCURA (opcoes) vem do ano-alvo: é demanda observada, não previsão,
+    # e serve para dizer quais grupamentos a unidade de fato atende hoje.
+    chance_recorte = (
+        a[a["ano"] < ANO_ALVO]
         .groupby(["unidade", "grupamento", "horario"])
-        .agg(opcoes=("ok", "size"), taxa=("ok", "mean"))
+        .agg(n_hist_recorte=("ok", "size"), taxa=("ok", "mean"))
         .reset_index()
     )
+    procura_recorte = (
+        a[a["ano"] == ANO_ALVO]
+        .groupby(["unidade", "grupamento", "horario"])
+        .agg(opcoes=("ok", "size"))
+        .reset_index()
+    )
+    perfil = procura_recorte.merge(
+        chance_recorte, on=["unidade", "grupamento", "horario"], how="left"
+    )
+    # Recorte sem histórico próprio herda a taxa da unidade — também
+    # out-of-sample — em vez de sumir da oferta ou fingir chance própria.
+    taxa_unidade = hist.set_index("unidade")["taxa_hist"]
+    perfil["taxa"] = perfil["taxa"].fillna(perfil["unidade"].map(taxa_unidade))
+    perfil["n_hist_recorte"] = perfil["n_hist_recorte"].fillna(0)
+    perfil = perfil[perfil["taxa"].notna()]
 
     print("juntando geolocalização...")
     geo = carrega_geo()
@@ -173,8 +193,11 @@ def main():
                 {
                     "grupamento": texto(d["grupamento"]),
                     "horario": texto(d["horario"]),
+                    # procura observada no ano-alvo
                     "opcoes": int(d["opcoes"]),
+                    # chance out-of-sample: só processos anteriores
                     "chance": round(float(d["taxa"]), 4),
+                    "n_hist": int(d["n_hist_recorte"]),
                 }
                 for _, d in det.iterrows()
             ],

@@ -41,17 +41,17 @@ export function CartaoUnidade({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span
-            className="tnum mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[0.8125rem] font-semibold"
+            className="tnum mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-semibold"
             style={{ background: "var(--surface)", color: "var(--muted)" }}
             aria-label={`Opção ${posicao}`}
           >
             {posicao}
           </span>
           <div className="min-w-0">
-            <h3 className="text-[1.0625rem] font-semibold leading-snug">
+            <h3 className="text-h3 font-semibold leading-snug">
               {tituloCase(u.nome)}
             </h3>
-            <p className="mt-0.5 text-[0.8125rem]" style={{ color: "var(--muted)" }}>
+            <p className="mt-0.5 text-sm" style={{ color: "var(--muted)" }}>
               {[tituloCase(u.tipo), tituloCase(u.bairro)].filter(Boolean).join(" · ")}
             </p>
           </div>
@@ -63,7 +63,7 @@ export function CartaoUnidade({
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <p
-            className="mb-1.5 text-[0.6875rem] font-medium uppercase tracking-wide"
+            className="mb-1.5 text-micro font-medium uppercase tracking-wide"
             style={{ color: "var(--muted)" }}
           >
             Chance de vaga
@@ -72,7 +72,7 @@ export function CartaoUnidade({
         </div>
         <div>
           <p
-            className="mb-1.5 text-[0.6875rem] font-medium uppercase tracking-wide"
+            className="mb-1.5 text-micro font-medium uppercase tracking-wide"
             style={{ color: "var(--muted)" }}
           >
             Encaixe na rotina
@@ -81,12 +81,19 @@ export function CartaoUnidade({
         </div>
       </div>
 
-      <p className="mt-3 text-[0.8125rem] leading-relaxed" style={{ color: "var(--ink)" }}>
+      <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--ink)" }}>
         {item.explicacao}
       </p>
 
+      {item.faixa === "alta" && item.papel !== "ancora" && (
+        <p className="mt-2 text-label" style={{ color: "var(--muted)" }}>
+          A chance é alta por causa da sua pontuação. Historicamente esta unidade
+          atende menos da metade de quem pede.
+        </p>
+      )}
+
       <div
-        className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-[0.75rem]"
+        className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-label"
         style={{ color: "var(--muted)", borderTop: "1px solid var(--border)" }}
       >
         <span className="tnum">

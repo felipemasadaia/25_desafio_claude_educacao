@@ -16,6 +16,9 @@ import pytest
 RAIZ = Path(__file__).resolve().parent.parent
 CATALOGO = RAIZ / "web" / "data" / "creches.json"
 MIN_OPCOES_HIST = 30
+# Mesmos estados de sucesso do build: se divergirem, o teste compara
+# contra outra definição de "conseguiu vaga" e vira ruído.
+SUCESSO = ["Confirmado", "Ativo", "Selecionado", "Selecionado da lista"]
 
 
 @pytest.fixture(scope="module")
@@ -36,13 +39,92 @@ def test_json_e_valido_para_javascript(catalogo):
     assert catalogo["unidades"]
 
 
-def test_sem_vazamento_temporal(catalogo):
-    """A chance histórica não pode ser calculada com o ano avaliado."""
-    bruto = CATALOGO.read_text(encoding="utf-8")
-    assert '"ano_alvo":2025' in bruto.replace(" ", "")
-    # O guarda-corpo real está no build: hist usa a[a.ano < ANO_ALVO].
-    fonte = (RAIZ / "scripts" / "build_catalogo.py").read_text(encoding="utf-8")
-    assert 'a["ano"] < ANO_ALVO' in fonte, "cálculo histórico deve excluir o ano-alvo"
+def _inscricoes():
+    """Base bruta, para conferir o catálogo contra a origem."""
+    import pandas as pd
+
+    caminho = RAIZ / "dados_sme" / "Bases IC_ ClassificadoseFila" / "01_QueryA_InscricoesPorAno.csv.gz"
+    if not caminho.exists():
+        pytest.skip("bases da SME ausentes (clonar CIT-SME-RJ/dadoscreche)")
+    return pd.read_csv(
+        caminho, sep=";", encoding="utf-8-sig", compression="gzip", low_memory=False
+    )
+
+
+def test_chance_da_unidade_e_out_of_sample(catalogo):
+    """
+    A chance histórica tem de bater com o cálculo feito SÓ com anos anteriores.
+
+    Confere contra a base, não contra o texto do script: um vazamento que
+    passasse por outro caminho no código continuaria invisível para um teste
+    que apenas procura uma string no fonte.
+    """
+    import pandas as pd
+
+    a = _inscricoes()
+    a["ok"] = a["situacao"].isin(SUCESSO)
+    a["unidade"] = a["unidade"].astype(str).str.strip()
+    ano = catalogo["ano_alvo"]
+
+    esperado = a[a["ano"] < ano].groupby("unidade")["ok"].mean()
+
+    conferidas = 0
+    for u in catalogo["unidades"]:
+        if u["chance_hist"] is None or u["codigo"] not in esperado.index:
+            continue
+        assert u["chance_hist"] == pytest.approx(float(esperado[u["codigo"]]), abs=1e-4), (
+            f"{u['codigo']}: chance_hist não confere com o cálculo out-of-sample"
+        )
+        conferidas += 1
+    assert conferidas > 500, f"conferiu poucas unidades ({conferidas})"
+
+
+def test_chance_por_grupamento_e_out_of_sample(catalogo):
+    """
+    O recorte grupamento x horário é o número que a família de fato vê —
+    o motor usa ele, não a chance da unidade. Precisa da mesma garantia.
+    """
+    a = _inscricoes()
+    a["ok"] = a["situacao"].isin(SUCESSO)
+    a["unidade"] = a["unidade"].astype(str).str.strip()
+    ano = catalogo["ano_alvo"]
+
+    anterior = (
+        a[a["ano"] < ano].groupby(["unidade", "grupamento", "horario"])["ok"].mean()
+    )
+    do_ano = a[a["ano"] == ano].groupby(["unidade", "grupamento", "horario"])["ok"].mean()
+
+    divergentes = []
+    for u in catalogo["unidades"]:
+        for r in u["por_grupamento"]:
+            chave = (u["codigo"], r["grupamento"], r["horario"])
+            if r["n_hist"] > 0 and chave in anterior.index:
+                if abs(r["chance"] - float(anterior[chave])) > 1e-4:
+                    divergentes.append(chave)
+            # Se bater exatamente com a taxa do ano-alvo e divergir da
+            # anterior, é vazamento.
+            if chave in do_ano.index and chave in anterior.index:
+                bate_ano = abs(r["chance"] - float(do_ano[chave])) < 1e-6
+                difere_hist = abs(float(do_ano[chave]) - float(anterior[chave])) > 1e-3
+                assert not (bate_ano and difere_hist), (
+                    f"{chave}: chance do recorte veio do ano avaliado"
+                )
+
+    assert not divergentes, f"{len(divergentes)} recortes fora do cálculo out-of-sample"
+
+
+def test_procura_do_recorte_e_do_ano_alvo(catalogo):
+    """A procura é demanda observada e vem do ano-alvo, deliberadamente."""
+    a = _inscricoes()
+    a["unidade"] = a["unidade"].astype(str).str.strip()
+    ano = catalogo["ano_alvo"]
+    do_ano = a[a["ano"] == ano].groupby(["unidade", "grupamento", "horario"]).size()
+
+    for u in catalogo["unidades"]:
+        for r in u["por_grupamento"]:
+            chave = (u["codigo"], r["grupamento"], r["horario"])
+            if chave in do_ano.index:
+                assert r["opcoes"] == int(do_ano[chave]), f"{chave}: procura não confere"
 
 
 def test_marcador_de_confiabilidade_respeita_o_limite(catalogo):

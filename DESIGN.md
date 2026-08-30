@@ -73,14 +73,21 @@ par display/body. Números tabulares (`font-variant-numeric: tabular-nums`) em t
 Escala **fixa em rem**, razão ~1.2 — nunca `clamp()` fluido: em UI de produto o heading
 fluido encolhe dentro de painel e piora.
 
-| Passo | Tamanho | Peso | Uso |
-|---|---|---|---|
-| `--t-display` | 1.75rem | 600 | Título de etapa |
-| `--t-h2` | 1.375rem | 600 | Seção |
-| `--t-h3` | 1.0625rem | 600 | Nome de unidade |
-| `--t-body` | 0.9375rem | 400 | Corpo |
-| `--t-sm` | 0.8125rem | 400 | Metadados, motivo |
-| `--t-label` | 0.75rem | 500 | Rótulos de formulário |
+Cada passo existe como token **e** como utilitário do Tailwind
+(`text-display`, `text-h2`, …). Os componentes usam o utilitário; tamanho
+arbitrário (`text-[0.9rem]`) não entra — foi o que fez a escala virar
+decoração na primeira versão.
+
+| Passo | Utilitário | Tamanho | Peso | Uso |
+|---|---|---|---|---|
+| `--t-display` | `text-display` | 1.75rem | 600 | Título de página, indicador do painel |
+| `--t-h2` | `text-h2` | 1.375rem | 600 | Seção |
+| `--t-h3` | `text-h3` | 1.0625rem | 600 | Nome de unidade |
+| `--t-md` | `text-md` | 0.9375rem | 400 | Texto de apoio de cabeçalho |
+| `--t-body` | `text-body` | 0.875rem | 400 | Corpo |
+| `--t-sm` | `text-sm` | 0.8125rem | 400 | Metadados, motivo |
+| `--t-label` | `text-label` | 0.75rem | 500 | Rótulos de formulário |
+| `--t-micro` | `text-micro` | 0.6875rem | 500 | Selo de papel, cabeçalho de tabela |
 
 Prosa limitada a 65–75ch. `text-wrap: balance` em h1–h3. Sem eyebrow em caixa alta acima de
 cada seção, sem marcadores numerados como scaffolding.

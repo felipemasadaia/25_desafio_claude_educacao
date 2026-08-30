@@ -458,3 +458,33 @@ describe("consistência de apresentação", () => {
     }
   });
 });
+
+describe("âncora é propriedade da unidade, não do perfil", () => {
+  it("a prioridade legal não cria âncora onde a unidade não sustenta", () => {
+    // Unidade disputada: nem com pontuação máxima ela vira aposta segura,
+    // porque "aposta segura" significa que a unidade costuma ter vaga.
+    const catalogo = [unidade({ codigo: "DISPUTADA", chance_hist: 0.2, km: 1 })];
+
+    const comPrioridade = recomendar(perfil({ criterios: [CADUNICO] }), catalogo);
+
+    expect(comPrioridade.itens[0].papel).not.toBe("ancora");
+    expect(comPrioridade.deficitTerritorial).toBe(true);
+  });
+
+  it("o motor e a reavaliação concordam sobre quem é âncora", async () => {
+    const { reavalia } = await import("./edicao");
+    const catalogo = [
+      ancoraElegivel(),
+      unidade({ codigo: "M1", chance_hist: 0.35, km: 1.1 }),
+      unidade({ codigo: "M2", chance_hist: 0.33, km: 1.2 }),
+    ];
+
+    const sugerida = recomendar(perfil({ criterios: [CADUNICO] }), catalogo);
+    const reavaliada = reavalia(sugerida.itens, true);
+
+    expect(reavaliada.itens.map((i) => i.papel)).toEqual(
+      sugerida.itens.map((i) => i.papel),
+    );
+    expect(reavaliada.perdeuAncora).toBe(false);
+  });
+});

@@ -42,9 +42,9 @@ function Rodape() {
       style={{ borderTop: "1px solid var(--border)", background: "var(--surface)" }}
     >
       <div className="mx-auto max-w-4xl">
-        <h2 className="text-[0.8125rem] font-semibold">Sobre estes números</h2>
+        <h2 className="text-sm font-semibold">Sobre estes números</h2>
         <p
-          className="mt-1.5 max-w-[70ch] text-[0.75rem] leading-relaxed"
+          className="mt-1.5 max-w-[70ch] text-label leading-relaxed"
           style={{ color: "var(--muted)" }}
         >
           Dados dos processos seletivos de creche de 2021 a 2025 da Secretaria Municipal de

@@ -125,6 +125,24 @@ export const ROTULO_FAIXA: Record<FaixaChance, string> = {
   minima: "Muito disputada",
 };
 
+/**
+ * Uma unidade sustenta o papel de âncora da carteira?
+ *
+ * Propriedade da UNIDADE, não do par (família, unidade): a spec define
+ * âncora como "chance histórica ≥50%" e amostra confiável. Deliberadamente
+ * não usa a chance ajustada pelo perfil — senão a prioridade legal criaria
+ * âncoras que não existem para mais ninguém, e a aposta segura deixaria de
+ * significar "esta unidade costuma ter vaga".
+ *
+ * Exportada porque a reavaliação de carteira editada precisa da mesma regra.
+ */
+export function sustentaAncora(
+  confiavel: boolean,
+  chanceHistorica: number | null,
+): boolean {
+  return confiavel && (chanceHistorica ?? 0) >= LIMIAR_ANCORA;
+}
+
 /** Peso da âncora de localização pela ordem declarada. A primeira pesa mais. */
 function pesoAncora(indice: number): number {
   return 1 / (1 + indice * 0.6);
@@ -190,19 +208,27 @@ function candidatas(perfil: Perfil, unidades: Unidade[], pontuacao: number): Can
       minutos: Math.round((melhor.km / velocidade) * 60),
       pesoLocal: melhor.peso,
       // Amostra frágil nunca sustenta a aposta segura da carteira.
-      podeSerAncora: unidade.confiavel && chanceBase >= LIMIAR_ANCORA,
+      podeSerAncora: sustentaAncora(unidade.confiavel, unidade.chance_hist),
     });
   }
 
   return saida;
 }
 
+/**
+ * Valor de uma candidata: chance com peso maior que encaixe, e o encaixe
+ * ponderado pela prioridade da âncora de localização que a justifica.
+ * Estes pesos vão ser calibrados — por isso vivem num lugar só.
+ */
+function valorDe(c: Candidata): number {
+  return c.chance * 0.65 + c.encaixe * 0.35 * c.pesoLocal;
+}
+
 /** Ordem estável: valor decrescente, empate desfeito pelo código da unidade. */
 function ordenaPorValor(lista: Candidata[]): Candidata[] {
   return [...lista].sort((a, b) => {
-    const va = a.chance * 0.65 + a.encaixe * 0.35 * a.pesoLocal;
-    const vb = b.chance * 0.65 + b.encaixe * 0.35 * b.pesoLocal;
-    if (vb !== va) return vb - va;
+    const diferenca = valorDe(b) - valorDe(a);
+    if (diferenca !== 0) return diferenca;
     return a.unidade.codigo.localeCompare(b.unidade.codigo);
   });
 }
@@ -213,11 +239,23 @@ function ordenaPorValor(lista: Candidata[]): Candidata[] {
  * Exatamente uma âncora: é a aposta segura declarada, e duplicá-la esvazia
  * o sentido do papel. O resto se divide entre sonho (o que a família quer,
  * mesmo disputado) e equilíbrio.
+ *
+ * Exportado porque a reavaliação de uma carteira editada precisa da mesma
+ * regra: duas definições de papel divergiriam assim que os limiares fossem
+ * calibrados.
  */
-function papelDe(c: Candidata, jaTemAncora: boolean): Papel {
-  if (c.podeSerAncora && !jaTemAncora) return "ancora";
-  if (c.chance < LIMIAR_SONHO) return "sonho";
+export function decidePapel(
+  chance: number,
+  podeSerAncora: boolean,
+  jaTemAncora: boolean,
+): Papel {
+  if (podeSerAncora && !jaTemAncora) return "ancora";
+  if (chance < LIMIAR_SONHO) return "sonho";
   return "equilibrio";
+}
+
+function papelDe(c: Candidata, jaTemAncora: boolean): Papel {
+  return decidePapel(c.chance, c.podeSerAncora, jaTemAncora);
 }
 
 function explica(c: Candidata, papel: Papel): string {
@@ -343,12 +381,7 @@ function montaCarteira(lista: Candidata[]): Candidata[] {
 
   // Ordem final: a família se inscreve nesta sequência, e a ordem importa
   // na classificação. Âncora nunca em último.
-  return [...escolhidas].sort((a, b) => {
-    const va = a.chance * 0.65 + a.encaixe * 0.35 * a.pesoLocal;
-    const vb = b.chance * 0.65 + b.encaixe * 0.35 * b.pesoLocal;
-    if (vb !== va) return vb - va;
-    return a.unidade.codigo.localeCompare(b.unidade.codigo);
-  });
+  return ordenaPorValor(escolhidas);
 }
 
 /**

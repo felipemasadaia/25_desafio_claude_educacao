@@ -164,10 +164,10 @@ export function FluxoFamilia() {
             onMoverAncora={moverAncora}
           />
           <div className="flex flex-col gap-2">
-            <h3 className="text-[0.9375rem] font-semibold">
+            <h3 className="text-md font-semibold">
               Seus pontos de referência
             </h3>
-            <p className="text-[0.8125rem]" style={{ color: "var(--muted)" }}>
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
               A ordem importa: o primeiro pesa mais na recomendação.
             </p>
             <ul className="mt-1 flex flex-col gap-2">
@@ -181,7 +181,7 @@ export function FluxoFamilia() {
                   }}
                 >
                   <span
-                    className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-md text-[0.75rem] font-semibold"
+                    className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-md text-label font-semibold"
                     style={{ background: "var(--brand-suave)", color: "var(--brand)" }}
                   >
                     {i + 1}
@@ -198,7 +198,7 @@ export function FluxoFamilia() {
                     }
                     onFocus={() => setAncoraAtiva(a.id)}
                     aria-label={`Nome do ponto ${i + 1}`}
-                    className="min-w-0 flex-1 bg-transparent text-[0.875rem] font-medium outline-none"
+                    className="min-w-0 flex-1 bg-transparent text-body font-medium outline-none"
                   />
                   <Botao
                     variante="fantasma"
@@ -345,9 +345,9 @@ export function FluxoFamilia() {
                           </svg>
                         )}
                       </span>
-                      <span className="flex-1 text-[0.875rem] leading-snug">{c.texto}</span>
+                      <span className="flex-1 text-body leading-snug">{c.texto}</span>
                       <span
-                        className="tnum shrink-0 text-[0.75rem] font-semibold"
+                        className="tnum shrink-0 text-label font-semibold"
                         style={{ color: marcado ? "var(--brand)" : "var(--muted)" }}
                       >
                         +{c.pontos}
@@ -394,9 +394,9 @@ export function FluxoFamilia() {
                 </svg>
               )}
             </span>
-            <span className="flex-1 text-[0.875rem] leading-snug">
+            <span className="flex-1 text-body leading-snug">
               A criança precisa de unidade acessível
-              <span className="mt-0.5 block text-[0.75rem]" style={{ color: "var(--muted)" }}>
+              <span className="mt-0.5 block text-label" style={{ color: "var(--muted)" }}>
                 Consideramos junto com a pontuação de educação especial.
               </span>
             </span>
@@ -406,8 +406,8 @@ export function FluxoFamilia() {
             className="flex items-center justify-between rounded-lg px-4 py-3"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           >
-            <span className="text-[0.875rem] font-medium">Sua pontuação</span>
-            <span className="tnum text-[1.25rem] font-semibold" style={{ color: "var(--brand)" }}>
+            <span className="text-body font-medium">Sua pontuação</span>
+            <span className="tnum text-h2 font-semibold" style={{ color: "var(--brand)" }}>
               {carteira.pontuacao}
             </span>
           </div>
@@ -458,8 +458,8 @@ export function FluxoFamilia() {
 function Cabecalho({ titulo, texto }: { titulo: string; texto: string }) {
   return (
     <div>
-      <h2 className="text-[1.375rem] font-semibold">{titulo}</h2>
-      <p className="mt-1.5 max-w-[65ch] text-[0.9375rem]" style={{ color: "var(--muted)" }}>
+      <h2 className="text-h2 font-semibold">{titulo}</h2>
+      <p className="mt-1.5 max-w-[65ch] text-md" style={{ color: "var(--muted)" }}>
         {texto}
       </p>
     </div>
@@ -479,14 +479,14 @@ function Passos({ etapa, onIr }: { etapa: Etapa; onIr: (e: Etapa) => void }) {
             type="button"
             onClick={() => onIr(e.id)}
             aria-current={ativo ? "step" : undefined}
-            className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-lg px-3 text-[0.8125rem] font-medium transition-colors"
+            className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors"
             style={{
               background: ativo ? "var(--brand-suave)" : "transparent",
               color: ativo ? "var(--brand)" : feito ? "var(--ink)" : "var(--muted)",
             }}
           >
             <span
-              className="tnum grid h-5 w-5 place-items-center rounded-full text-[0.6875rem] font-semibold"
+              className="tnum grid h-5 w-5 place-items-center rounded-full text-micro font-semibold"
               style={{
                 background: ativo || feito ? "var(--brand)" : "var(--border)",
                 color: ativo || feito ? "var(--brand-ink)" : "var(--muted)",
@@ -563,15 +563,15 @@ function ResultadoCarteira({
           border: "1px solid var(--chance-minima)",
         }}
       >
-        <h2 className="text-[1.125rem] font-semibold" style={{ color: "var(--chance-minima)" }}>
+        <h2 className="text-h3 font-semibold" style={{ color: "var(--chance-minima)" }}>
           Não encontramos nenhuma creche no seu alcance
         </h2>
-        <p className="mt-2 max-w-[65ch] text-[0.875rem]">
+        <p className="mt-2 max-w-[65ch] text-body">
           Com os pontos e o deslocamento que você informou, nenhuma unidade atende a faixa
           etária e o horário pedidos. Não vamos sugerir uma creche inviável só para preencher
           as cinco opções.
         </p>
-        <p className="mt-2 max-w-[65ch] text-[0.875rem]">
+        <p className="mt-2 max-w-[65ch] text-body">
           Seu caso foi registrado como demanda não atendida na sua região — essa informação
           vai para quem planeja a rede.
         </p>
@@ -589,17 +589,22 @@ function ResultadoCarteira({
             border: "1px solid var(--chance-baixa)",
           }}
         >
-          <h2 className="text-[1.0625rem] font-semibold" style={{ color: "var(--chance-baixa)" }}>
+          <h2 className="text-h3 font-semibold" style={{ color: "var(--chance-baixa)" }}>
             Não há nenhuma aposta segura perto de você
           </h2>
-          <p className="mt-2 max-w-[65ch] text-[0.875rem]">
+          <p className="mt-2 max-w-[65ch] text-body">
             Nenhuma creche no seu alcance tem histórico de atender a maioria de quem se
-            inscreve. Montamos a carteira com a melhor chance realmente disponível —
+            inscreve. Montamos a carteira com a melhor chance realmente disponível.
             {melhorChance !== null && (
-              <> a melhor delas fica na faixa <strong>{FAIXA_TEXTO[faixaDe(melhorChance)]}</strong>.</>
+              <>
+                {" "}
+                Considerando a sua pontuação, a melhor delas fica na faixa{" "}
+                <strong>{FAIXA_TEXTO[faixaDe(melhorChance)]}</strong> — mas isso vem do seu
+                perfil, não de a unidade costumar ter vaga.
+              </>
             )}
           </p>
-          <p className="mt-2 max-w-[65ch] text-[0.875rem]">
+          <p className="mt-2 max-w-[65ch] text-body">
             Seu caso foi registrado como déficit territorial na sua região.
           </p>
         </div>
@@ -610,7 +615,7 @@ function ResultadoCarteira({
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-[1.375rem] font-semibold">
+          <h2 className="text-h2 font-semibold">
             {editada ? "Sua carteira editada" : "Sua carteira"}
           </h2>
           {editada && (
@@ -622,7 +627,7 @@ function ResultadoCarteira({
         {editada && <Comparacao editada={probabilidade} sugerida={probabilidadeSugerida} />}
         {perdeuAncora && (
           <p
-            className="mt-2 rounded-lg px-3 py-2 text-[0.8125rem]"
+            className="mt-2 rounded-lg px-3 py-2 text-sm"
             style={{
               background: "var(--chance-baixa-suave)",
               color: "var(--chance-baixa)",
@@ -635,7 +640,7 @@ function ResultadoCarteira({
             bastante.
           </p>
         )}
-        <p className="mt-2 max-w-[65ch] text-[0.875rem]" style={{ color: "var(--muted)" }}>
+        <p className="mt-2 max-w-[65ch] text-body" style={{ color: "var(--muted)" }}>
           Com estas {itens.length} opções, a chance de conseguir vaga em pelo menos uma delas
           é{" "}
           <strong style={{ color: "var(--ink)" }}>
@@ -671,7 +676,7 @@ function ResultadoCarteira({
                 className="mt-2 rounded-lg p-3"
                 style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
               >
-                <p className="mb-2 text-[0.8125rem] font-medium">
+                <p className="mb-2 text-sm font-medium">
                   Trocar por outra creche do seu alcance
                 </p>
                 <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto">
@@ -688,7 +693,7 @@ function ResultadoCarteira({
                         className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition-colors"
                         style={{ background: "var(--elevated)" }}
                       >
-                        <span className="min-w-0 flex-1 truncate text-[0.8125rem]">
+                        <span className="min-w-0 flex-1 truncate text-sm">
                           {tituloCase(alt.unidade.nome)}
                         </span>
                         <SinalChance faixa={alt.faixa} compacto />
@@ -724,7 +729,7 @@ function Comparacao({ editada, sugerida }: { editada: number; sugerida: number }
 
   return (
     <p
-      className="mt-3 rounded-lg px-3 py-2 text-[0.8125rem]"
+      className="mt-3 rounded-lg px-3 py-2 text-sm"
       style={{ background: "var(--elevated)", color: cor, border: `1px solid ${cor}` }}
       role="status"
     >
@@ -747,8 +752,8 @@ const FAIXA_TEXTO = {
 function Personas({ onCarregar }: { onCarregar: (p: Perfil) => void }) {
   return (
     <section className="mt-12 border-t pt-6" style={{ borderColor: "var(--border)" }}>
-      <h2 className="text-[0.9375rem] font-semibold">Perfis de demonstração</h2>
-      <p className="mt-1 max-w-[65ch] text-[0.8125rem]" style={{ color: "var(--muted)" }}>
+      <h2 className="text-md font-semibold">Perfis de demonstração</h2>
+      <p className="mt-1 max-w-[65ch] text-sm" style={{ color: "var(--muted)" }}>
         Casos pré-configurados para ver o comportamento do sistema sem preencher o formulário.
       </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -760,8 +765,8 @@ function Personas({ onCarregar }: { onCarregar: (p: Perfil) => void }) {
             className="flex min-h-[44px] flex-col gap-1 rounded-lg p-3 text-left transition-colors"
             style={{ background: "var(--elevated)", border: "1px solid var(--border)" }}
           >
-            <span className="text-[0.875rem] font-semibold">{p.nome}</span>
-            <span className="text-[0.75rem]" style={{ color: "var(--muted)" }}>
+            <span className="text-body font-semibold">{p.nome}</span>
+            <span className="text-label" style={{ color: "var(--muted)" }}>
               {p.resumo}
             </span>
           </button>

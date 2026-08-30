@@ -1,5 +1,6 @@
 "use client";
 
+import { ROTULO_FAIXA } from "@/lib/recomendador/motor";
 import type { FaixaChance } from "@/lib/recomendador/tipos";
 
 /* ---------- Botão ---------- */
@@ -19,7 +20,7 @@ export function Botao({
   const base =
     "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all disabled:opacity-45 disabled:cursor-not-allowed";
   // Alvo de toque >=44px na face da família.
-  const dim = tamanho === "sm" ? "min-h-[36px] px-3 text-[0.8125rem]" : "min-h-[44px] px-4";
+  const dim = tamanho === "sm" ? "min-h-[36px] px-3 text-sm" : "min-h-[44px] px-4";
 
   const estilos: Record<string, React.CSSProperties> = {
     primario: { background: "var(--brand)", color: "var(--brand-ink)" },
@@ -49,12 +50,7 @@ export function Botao({
  * pelo texto; sob sol forte, pelo texto. A spec proíbe número pontual —
  * a simulação acerta a direção e erra a magnitude.
  */
-export const ROTULO_FAIXA: Record<FaixaChance, string> = {
-  alta: "Aposta segura",
-  media: "Chance real",
-  baixa: "Disputada",
-  minima: "Muito disputada",
-};
+export { ROTULO_FAIXA } from "@/lib/recomendador/motor";
 
 const COR_FAIXA: Record<FaixaChance, { cor: string; fundo: string }> = {
   alta: { cor: "var(--chance-alta)", fundo: "var(--chance-alta-suave)" },
@@ -113,7 +109,7 @@ export function SinalChance({
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full font-medium ${
-        compacto ? "px-2 py-0.5 text-[0.6875rem]" : "px-2.5 py-1 text-[0.75rem]"
+        compacto ? "px-2 py-0.5 text-micro" : "px-2.5 py-1 text-label"
       }`}
       style={{ background: fundo, color: cor }}
     >
@@ -146,7 +142,7 @@ export function BarraEncaixe({ valor }: { valor: number }) {
           style={{ width: `${pct}%`, background: "var(--accent)" }}
         />
       </div>
-      <span className="text-[0.75rem]" style={{ color: "var(--muted)" }}>
+      <span className="text-label" style={{ color: "var(--muted)" }}>
         {rotulo}
       </span>
     </div>
@@ -171,7 +167,7 @@ export function SeloPapel({ papel }: { papel: keyof typeof ROTULO_PAPEL }) {
   const ancora = papel === "ancora";
   return (
     <span
-      className="inline-flex items-center rounded-md px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide"
+      className="inline-flex items-center rounded-md px-2 py-0.5 text-micro font-semibold uppercase tracking-wide"
       title={DESCRICAO_PAPEL[papel]}
       style={{
         background: ancora ? "var(--brand-suave)" : "transparent",
@@ -199,11 +195,11 @@ export function Campo({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[0.8125rem] font-medium">
+      <label htmlFor={id} className="text-sm font-medium">
         {rotulo}
       </label>
       {ajuda && (
-        <p className="text-[0.75rem]" style={{ color: "var(--muted)" }}>
+        <p className="text-label" style={{ color: "var(--muted)" }}>
           {ajuda}
         </p>
       )}
@@ -256,9 +252,9 @@ export function Opcoes<T extends string>({
               )}
             </span>
             <span className="flex flex-col">
-              <span className="text-[0.875rem] font-medium">{o.rotulo}</span>
+              <span className="text-body font-medium">{o.rotulo}</span>
               {o.nota && (
-                <span className="text-[0.75rem]" style={{ color: "var(--muted)" }}>
+                <span className="text-label" style={{ color: "var(--muted)" }}>
                   {o.nota}
                 </span>
               )}
