@@ -94,11 +94,21 @@ export function FluxoFamilia() {
 
   const pontos: PontoMapa[] = useMemo(() => {
     const naCarteira = new Set(itens.map((i) => i.unidade.codigo));
-    return [...itens, ...carteira.alternativas].map((i) => ({
-      unidade: i.unidade,
-      faixa: i.faixa,
-      naCarteira: naCarteira.has(i.unidade.codigo),
-    }));
+    // Uma unidade trocada pela família está em `itens` e continua em
+    // `alternativas` — sem deduplicar, ela é desenhada duas vezes no mapa e
+    // o React reclama de chave repetida.
+    const vistos = new Set<string>();
+    const pontosUnicos: PontoMapa[] = [];
+    for (const i of [...itens, ...carteira.alternativas]) {
+      if (vistos.has(i.unidade.codigo)) continue;
+      vistos.add(i.unidade.codigo);
+      pontosUnicos.push({
+        unidade: i.unidade,
+        faixa: i.faixa,
+        naCarteira: naCarteira.has(i.unidade.codigo),
+      });
+    }
+    return pontosUnicos;
   }, [itens, carteira.alternativas]);
 
   const moverAncora = useCallback((id: string, lat: number, lng: number) => {
