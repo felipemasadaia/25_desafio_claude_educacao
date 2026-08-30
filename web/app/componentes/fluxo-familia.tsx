@@ -52,6 +52,11 @@ export function FluxoFamilia() {
   const [selecionada, setSelecionada] = useState<string | null>(null);
   /** Trocas manuais da família: substituem itens da carteira sugerida. */
   const [manual, setManual] = useState<string[] | null>(null);
+  /**
+   * O que a família já tinha escolhido sozinha, antes de ver a recomendação.
+   * É a comparação que mostra a diferença — e o motivo do produto existir.
+   */
+  const [propria, setPropria] = useState<string[]>([]);
 
   const carteira = useMemo(
     () => recomendar(perfil, unidadesComGeo, catalogo.regua_pontuacao),
@@ -421,6 +426,21 @@ export function FluxoFamilia() {
 
       {etapa === "carteira" && (
         <section className="mt-6 flex flex-col gap-5">
+          {perfil.precisaAcessibilidade && (
+            <p
+              className="rounded-lg px-4 py-3 text-sm"
+              style={{
+                background: "var(--accent-suave)",
+                color: "var(--ink)",
+                border: "1px solid var(--accent)",
+              }}
+            >
+              Você informou que precisa de unidade acessível. Sua pontuação já considera
+              isso, mas as bases públicas da SME não dizem quais unidades são acessíveis —
+              confirme esse ponto diretamente com as creches da sua carteira antes de
+              decidir a ordem.
+            </p>
+          )}
           <ResultadoCarteira
             itens={itens}
             deficit={carteira.deficitTerritorial}
@@ -433,6 +453,12 @@ export function FluxoFamilia() {
             alternativas={carteira.alternativas}
             onDefinirManual={setManual}
             codigosAtuais={itens.map((i) => i.unidade.codigo)}
+          />
+          <MinhaEscolha
+            propria={propria}
+            onMudar={setPropria}
+            disponiveis={[...itens, ...carteira.alternativas]}
+            probabilidadeSugerida={carteira.probabilidadeAgregada}
           />
           <Mapa
             pontos={pontos}
@@ -644,7 +670,7 @@ function ResultadoCarteira({
           Com estas {itens.length} opções, a chance de conseguir vaga em pelo menos uma delas
           é{" "}
           <strong style={{ color: "var(--ink)" }}>
-            {probabilidade >= TETO_AGREGADO ? "muito boa" : probabilidade >= 0.6 ? "boa" : probabilidade >= 0.35 ? "razoável" : "baixa"}
+            {ROTULO_AGREGADO(probabilidade).toLowerCase()}
           </strong>
           . Trabalhamos com faixas, não com número exato: a estimativa acerta a direção, não a
           magnitude.
@@ -742,12 +768,128 @@ function Comparacao({ editada, sugerida }: { editada: number; sugerida: number }
   );
 }
 
+/** Faixa qualitativa da probabilidade agregada. Nunca um número cravado. */
+function ROTULO_AGREGADO(p: number): string {
+  if (p >= TETO_AGREGADO) return "Muito boa";
+  if (p >= 0.6) return "Boa";
+  if (p >= 0.35) return "Razoável";
+  return "Baixa";
+}
+
 const FAIXA_TEXTO = {
   alta: "aposta segura",
   media: "chance real",
   baixa: "disputada",
   minima: "muito disputada",
 } as const;
+
+/**
+ * Comparação com o que a família tinha escolhido sozinha.
+ *
+ * É o núcleo do argumento do produto: nos dados, a qualidade da escolha vale
+ * 17,2pp de chance de vaga entre famílias equivalentes. Sem poder ver a
+ * própria lista ao lado da sugerida, a família não tem como julgar isso.
+ */
+function MinhaEscolha({
+  propria,
+  onMudar,
+  disponiveis,
+  probabilidadeSugerida,
+}: {
+  propria: string[];
+  onMudar: (c: string[]) => void;
+  disponiveis: ItemCarteira[];
+  probabilidadeSugerida: number;
+}) {
+  const [aberto, setAberto] = useState(false);
+
+  const escolhidos = propria
+    .map((c) => disponiveis.find((i) => i.unidade.codigo === c))
+    .filter((i): i is ItemCarteira => !!i);
+  const minha = probabilidadeAgregada(escolhidos.map((i) => i.chance));
+
+  return (
+    <section
+      className="rounded-xl p-5"
+      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-h3">Você já tinha escolhido alguma creche?</h2>
+        <Botao variante="secundario" tamanho="sm" onClick={() => setAberto(!aberto)}>
+          {aberto ? "Fechar" : "Comparar com a minha escolha"}
+        </Botao>
+      </div>
+      <p className="mt-1.5 max-w-[65ch] text-sm" style={{ color: "var(--muted)" }}>
+        Monte a lista que você faria por conta própria e veja a diferença antes de decidir.
+      </p>
+
+      {aberto && (
+        <>
+          <ul className="mt-3 flex max-h-64 flex-col gap-1 overflow-y-auto">
+            {disponiveis.slice(0, 25).map((i) => {
+              const marcado = propria.includes(i.unidade.codigo);
+              return (
+                <li key={i.unidade.codigo}>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={marcado}
+                    disabled={!marcado && propria.length >= 5}
+                    onClick={() =>
+                      onMudar(
+                        marcado
+                          ? propria.filter((c) => c !== i.unidade.codigo)
+                          : [...propria, i.unidade.codigo],
+                      )
+                    }
+                    className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition-colors disabled:opacity-45"
+                    style={{
+                      background: marcado ? "var(--brand-suave)" : "var(--elevated)",
+                      border: `1px solid ${marcado ? "var(--brand)" : "transparent"}`,
+                    }}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {tituloCase(i.unidade.nome)}
+                    </span>
+                    <SinalChance faixa={i.faixa} compacto />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {escolhidos.length > 0 && (
+            <div
+              className="mt-3 grid gap-3 rounded-lg p-3 sm:grid-cols-2"
+              style={{ background: "var(--elevated)" }}
+            >
+              <div>
+                <p className="text-label" style={{ color: "var(--muted)" }}>
+                  Sua escolha ({escolhidos.length}{" "}
+                  {escolhidos.length === 1 ? "opção" : "opções"})
+                </p>
+                <p className="mt-0.5 text-h3">{ROTULO_AGREGADO(minha)}</p>
+              </div>
+              <div>
+                <p className="text-label" style={{ color: "var(--muted)" }}>
+                  Carteira sugerida (5 opções)
+                </p>
+                <p className="mt-0.5 text-h3" style={{ color: "var(--brand)" }}>
+                  {ROTULO_AGREGADO(probabilidadeSugerida)}
+                </p>
+              </div>
+              <p className="text-sm sm:col-span-2" style={{ color: "var(--muted)" }}>
+                {minha >= probabilidadeSugerida
+                  ? "Sua escolha já está no mesmo patamar da sugestão — a decisão final é sua."
+                  : "A carteira sugerida tem chance maior de conseguir alguma vaga. Compare os cartões acima antes de decidir."}
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
 
 function Personas({ onCarregar }: { onCarregar: (p: Perfil) => void }) {
   return (

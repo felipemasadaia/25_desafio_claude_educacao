@@ -194,6 +194,13 @@ function candidatas(perfil: Perfil, unidades: Unidade[], pontuacao: number): Can
 
     // Encaixe: proximidade dentro do alcance, com pequeno bônus de oferta
     // consolidada no recorte. Eixo separado da chance, deliberadamente.
+    //
+    // Grupamento e horário já entraram como filtro (recorte incompatível não
+    // chega aqui). Acessibilidade NÃO entra: as bases da SME não trazem
+    // atributo de acessibilidade por unidade, e derivá-la do tipo da unidade
+    // seria inventar dado. O perfil registra a necessidade e a interface
+    // avisa que este ponto precisa ser confirmado com a unidade — melhor que
+    // um número que finge saber.
     const proximidade = 1 - melhor.km / alcance;
     const oferta = Math.min(1, recorte.opcoes / 40);
     const encaixe = Math.min(1, Math.max(0, proximidade * 0.8 + oferta * 0.2));

@@ -488,3 +488,23 @@ describe("âncora é propriedade da unidade, não do perfil", () => {
     expect(reavaliada.perdeuAncora).toBe(false);
   });
 });
+
+describe("acessibilidade: limite declarado, não simulado", () => {
+  it("a necessidade declarada não altera a carteira, porque a base não traz o dado", () => {
+    const catalogo = [
+      ancoraElegivel(),
+      unidade({ codigo: "M1", chance_hist: 0.35, km: 1.1 }),
+      unidade({ codigo: "M2", chance_hist: 0.33, km: 1.2 }),
+    ];
+
+    const sem = recomendar(perfil(), catalogo);
+    const com = recomendar(perfil({ precisaAcessibilidade: true }), catalogo);
+
+    // Se um dia a base trouxer acessibilidade por unidade, este teste falha
+    // e obriga a revisar a interface junto — que hoje avisa a família de que
+    // o ponto precisa ser confirmado com a creche.
+    expect(com.itens.map((i) => i.unidade.codigo)).toEqual(
+      sem.itens.map((i) => i.unidade.codigo),
+    );
+  });
+});
