@@ -1,20 +1,36 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import type { AncoraLocalizacao, FaixaChance, Unidade } from "@/lib/recomendador/tipos";
-import { DiscoChance } from "./ui";
 
 /**
- * Mapa em SVG, sem tiles remotos.
+ * Mapa real do município do Rio, sobre tiles do OpenStreetMap.
  *
- * A demo precisa funcionar offline: sem API de geocodificação, sem API de
- * rotas, sem tile server. A referência espacial vem das próprias unidades
- * (852 com coordenada) mais os contornos do município — o suficiente para a
- * família reconhecer onde está e arrastar o pin.
+ * A família precisa reconhecer a própria rua para confiar no pino — silhueta
+ * esquemática não serve. Cada creche entra na coordenada real que veio do
+ * catálogo da SME; o pino de referência é arrastável e continua sendo a fonte
+ * de verdade da localização.
+ *
+ * A câmera é presa ao município: fora dos limites do Rio não há dado nenhum
+ * para mostrar, e deixar a família se perder no Atlântico é ruído.
  */
 
-/** Limites do município do Rio, com folga. */
-const LIMITES = { norte: -22.74, sul: -23.09, oeste: -43.8, leste: -43.1 };
+/** Bounding box do município do Rio de Janeiro (só cidade, não o estado). */
+export const LIMITES_MUNICIPIO = {
+  oeste: -43.796,
+  sul: -23.083,
+  leste: -43.099,
+  norte: -22.746,
+} as const;
+
+const CENTRO: [number, number] = [-43.4, -22.92];
+
+const LIMITES_CAMERA = new maplibregl.LngLatBounds(
+  [LIMITES_MUNICIPIO.oeste - 0.06, LIMITES_MUNICIPIO.sul - 0.06],
+  [LIMITES_MUNICIPIO.leste + 0.06, LIMITES_MUNICIPIO.norte + 0.06],
+);
 
 export type PontoMapa = {
   unidade: Unidade;
@@ -29,20 +45,68 @@ const COR_FAIXA: Record<FaixaChance, string> = {
   minima: "var(--chance-minima)",
 };
 
-function projeta(lat: number, lng: number, largura: number, altura: number) {
-  const x = ((lng - LIMITES.oeste) / (LIMITES.leste - LIMITES.oeste)) * largura;
-  const y = ((LIMITES.norte - lat) / (LIMITES.norte - LIMITES.sul)) * altura;
-  return { x, y };
+const ROTULO_FAIXA: Record<FaixaChance, string> = {
+  alta: "chance alta",
+  media: "chance média",
+  baixa: "chance baixa",
+  minima: "chance mínima",
+};
+
+/**
+ * Estilo raster com tiles do OSM.
+ *
+ * Raster e não vetor de propósito: sem chave de API, sem servidor de estilo,
+ * uma dependência a menos para a demo quebrar.
+ */
+const ESTILO: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    },
+  },
+  layers: [{ id: "osm", type: "raster", source: "osm" }],
+};
+
+/** Marcador de creche: bolinha colorida pela faixa, anel destacando a carteira. */
+function elementoUnidade(p: PontoMapa, selecionada: boolean) {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = "mapa-unidade";
+  el.dataset.carteira = String(p.naCarteira);
+  el.dataset.selecionada = String(selecionada);
+  el.style.setProperty("--cor", COR_FAIXA[p.faixa]);
+  el.setAttribute(
+    "aria-label",
+    `${p.unidade.nome ?? "Creche"} — ${ROTULO_FAIXA[p.faixa]}${p.naCarteira ? ", na sua carteira" : ""}`,
+  );
+  el.title = `${p.unidade.nome ?? "Creche"} — ${ROTULO_FAIXA[p.faixa]}`;
+  return el;
 }
 
-function desprojeta(x: number, y: number, largura: number, altura: number) {
-  const lng = LIMITES.oeste + (x / largura) * (LIMITES.leste - LIMITES.oeste);
-  const lat = LIMITES.norte - (y / altura) * (LIMITES.norte - LIMITES.sul);
-  return { lat, lng };
+/** Pino de referência da família: arrastável, rotulado. */
+function elementoAncora(a: AncoraLocalizacao, ativa: boolean, ordem: number) {
+  const el = document.createElement("div");
+  el.className = "mapa-ancora";
+  el.dataset.ativa = String(ativa);
+  el.innerHTML = `
+    <svg viewBox="0 0 24 34" width="26" height="36" aria-hidden="true">
+      <path d="M12 33 C4 20, 1 15, 1 11 A11 11 0 0 1 23 11 C23 15, 20 20, 12 33 Z"
+            fill="var(--brand)" stroke="var(--bg)" stroke-width="2" />
+      <circle cx="12" cy="11" r="4" fill="var(--bg)" />
+    </svg>
+    <span class="mapa-ancora-rotulo"></span>
+  `;
+  const rotulo = el.querySelector(".mapa-ancora-rotulo");
+  if (rotulo) rotulo.textContent = a.rotulo;
+  el.title = `${a.rotulo} — arraste para corrigir a posição (prioridade ${ordem})`;
+  return el;
 }
-
-const L = 800;
-const A = 460;
 
 export function Mapa({
   pontos,
@@ -59,165 +123,185 @@ export function Mapa({
   onSelecionarUnidade?: (codigo: string) => void;
   unidadeSelecionada?: string | null;
 }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [arrastando, setArrastando] = useState<string | null>(null);
+  const container = useRef<HTMLDivElement>(null);
+  const mapa = useRef<maplibregl.Map | null>(null);
+  const pronto = useRef(false);
+  const marcasUnidade = useRef(new Map<string, maplibregl.Marker>());
+  const marcasAncora = useRef(new Map<string, maplibregl.Marker>());
 
-  /** Silhueta aproximada do município, desenhada a partir dos limites. */
-  const contorno = useMemo(() => {
-    // Pontos costeiros aproximados (lng, lat) — referência visual, não cartografia.
-    const costa: Array<[number, number]> = [
-      [-43.79, -22.88], [-43.7, -22.93], [-43.63, -23.0], [-43.55, -23.05],
-      [-43.47, -23.03], [-43.4, -23.0], [-43.35, -22.99], [-43.28, -23.01],
-      [-43.22, -23.02], [-43.17, -22.98], [-43.14, -22.95], [-43.11, -22.91],
-      [-43.15, -22.88], [-43.2, -22.87], [-43.24, -22.85], [-43.3, -22.83],
-      [-43.36, -22.81], [-43.45, -22.8], [-43.55, -22.82], [-43.65, -22.85],
-      [-43.75, -22.86],
-    ];
-    return costa
-      .map(([lng, lat]) => {
-        const p = projeta(lat, lng, L, A);
-        return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+  /**
+   * Callbacks em ref: os handlers do MapLibre vivem fora do ciclo do React e
+   * não podem capturar uma closure velha.
+   */
+  const aoMover = useRef(onMoverAncora);
+  const aoSelecionar = useRef(onSelecionarUnidade);
+  aoMover.current = onMoverAncora;
+  aoSelecionar.current = onSelecionarUnidade;
+
+  useEffect(() => {
+    if (!container.current || mapa.current) return;
+
+    const m = new maplibregl.Map({
+      container: container.current,
+      style: ESTILO,
+      center: CENTRO,
+      zoom: 9.4,
+      maxBounds: LIMITES_CAMERA,
+      minZoom: 8.5,
+      maxZoom: 17,
+      attributionControl: { compact: true },
+    });
+    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    m.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: "metric" }), "bottom-left");
+    m.on("load", () => {
+      pronto.current = true;
+    });
+    mapa.current = m;
+
+    return () => {
+      m.remove();
+      mapa.current = null;
+      pronto.current = false;
+      marcasUnidade.current.clear();
+      marcasAncora.current.clear();
+    };
+  }, []);
+
+  /** Creches: reconcilia por código, sem recriar o mapa inteiro a cada render. */
+  useEffect(() => {
+    const m = mapa.current;
+    if (!m) return;
+
+    const vistos = new Set<string>();
+    for (const p of pontos) {
+      if (p.unidade.lat === null || p.unidade.lng === null) continue;
+      vistos.add(p.unidade.codigo);
+      const anterior = marcasUnidade.current.get(p.unidade.codigo);
+      anterior?.remove();
+
+      const el = elementoUnidade(p, unidadeSelecionada === p.unidade.codigo);
+      el.addEventListener("click", () => aoSelecionar.current?.(p.unidade.codigo));
+      const marca = new maplibregl.Marker({ element: el })
+        .setLngLat([p.unidade.lng, p.unidade.lat])
+        .addTo(m);
+      marcasUnidade.current.set(p.unidade.codigo, marca);
+    }
+
+    for (const [codigo, marca] of marcasUnidade.current) {
+      if (!vistos.has(codigo)) {
+        marca.remove();
+        marcasUnidade.current.delete(codigo);
+      }
+    }
+  }, [pontos, unidadeSelecionada]);
+
+  /** Pinos de referência: arrastáveis, com a posição devolvida ao perfil. */
+  useEffect(() => {
+    const m = mapa.current;
+    if (!m) return;
+
+    const vistos = new Set<string>();
+    ancoras.forEach((a, i) => {
+      vistos.add(a.id);
+      const existente = marcasAncora.current.get(a.id);
+
+      if (existente) {
+        const atual = existente.getLngLat();
+        if (atual.lat !== a.lat || atual.lng !== a.lng) existente.setLngLat([a.lng, a.lat]);
+        const el = existente.getElement();
+        el.dataset.ativa = String(ancoraAtiva === a.id);
+        const rotulo = el.querySelector(".mapa-ancora-rotulo");
+        if (rotulo) rotulo.textContent = a.rotulo;
+        el.title = `${a.rotulo} — arraste para corrigir a posição (prioridade ${i + 1})`;
+        return;
+      }
+
+      const marca = new maplibregl.Marker({
+        element: elementoAncora(a, ancoraAtiva === a.id, i + 1),
+        draggable: true,
+        anchor: "bottom",
+        offset: [0, 6],
       })
-      .join(" ");
-  }, []);
+        .setLngLat([a.lng, a.lat])
+        .addTo(m);
 
-  const posicaoDoEvento = useCallback((clientX: number, clientY: number) => {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const caixa = svg.getBoundingClientRect();
-    const x = ((clientX - caixa.left) / caixa.width) * L;
-    const y = ((clientY - caixa.top) / caixa.height) * A;
-    return desprojeta(
-      Math.max(0, Math.min(L, x)),
-      Math.max(0, Math.min(A, y)),
-      L,
-      A,
+      marca.on("dragend", () => {
+        const { lat, lng } = marca.getLngLat();
+        aoMover.current?.(a.id, lat, lng);
+      });
+
+      marcasAncora.current.set(a.id, marca);
+    });
+
+    for (const [id, marca] of marcasAncora.current) {
+      if (!vistos.has(id)) {
+        marca.remove();
+        marcasAncora.current.delete(id);
+      }
+    }
+  }, [ancoras, ancoraAtiva]);
+
+  /**
+   * Enquadra o que importa: com carteira, as creches recomendadas mais os
+   * pinos; sem carteira, o entorno do pino. Só quando o conjunto muda de
+   * tamanho — reenquadrar a cada arrasto tira o mapa do controle da família.
+   */
+  const assinatura = pontos
+    .filter((p) => p.naCarteira)
+    .map((p) => p.unidade.codigo)
+    .join(",");
+
+  const enquadra = useCallback(() => {
+    const m = mapa.current;
+    if (!m) return;
+    const alvos: Array<[number, number]> = [];
+    for (const p of pontos) {
+      if (p.naCarteira && p.unidade.lat !== null && p.unidade.lng !== null) {
+        alvos.push([p.unidade.lng, p.unidade.lat]);
+      }
+    }
+    for (const a of ancoras) alvos.push([a.lng, a.lat]);
+    if (alvos.length === 0) return;
+
+    if (alvos.length === 1) {
+      m.easeTo({ center: alvos[0], zoom: 13, duration: 600 });
+      return;
+    }
+    const caixa = alvos.reduce(
+      (acc, c) => acc.extend(c),
+      new maplibregl.LngLatBounds(alvos[0], alvos[0]),
     );
-  }, []);
+    m.fitBounds(caixa, { padding: 64, maxZoom: 14, duration: 600 });
+    // `ancoras` fora das deps de propósito: arrastar um pino não reenquadra.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assinatura]);
 
-  const mover = useCallback(
-    (clientX: number, clientY: number) => {
-      if (!arrastando || !onMoverAncora) return;
-      const pos = posicaoDoEvento(clientX, clientY);
-      if (pos) onMoverAncora(arrastando, pos.lat, pos.lng);
-    },
-    [arrastando, onMoverAncora, posicaoDoEvento],
-  );
+  useEffect(() => {
+    enquadra();
+  }, [enquadra]);
 
   return (
     <div
       className="relative w-full overflow-hidden rounded-xl"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${L} ${A}`}
-        className="w-full touch-none"
-        style={{ aspectRatio: `${L} / ${A}` }}
-        role="img"
-        aria-label={`Mapa do Rio de Janeiro com ${pontos.length} creches no seu alcance`}
-        onPointerMove={(e) => arrastando && mover(e.clientX, e.clientY)}
-        onPointerUp={() => setArrastando(null)}
-        onPointerLeave={() => setArrastando(null)}
-      >
-        <polygon
-          points={contorno}
-          fill="var(--elevated)"
-          stroke="var(--border-forte)"
-          strokeWidth="1.5"
-        />
-
-        {/* Unidades: fora da carteira primeiro, para não cobrir as escolhidas. */}
-        {pontos
-          .filter((p) => !p.naCarteira)
-          .map((p) => {
-            const { x, y } = projeta(p.unidade.lat!, p.unidade.lng!, L, A);
-            return (
-              <circle
-                key={p.unidade.codigo}
-                cx={x}
-                cy={y}
-                r={unidadeSelecionada === p.unidade.codigo ? 6 : 3.5}
-                fill={COR_FAIXA[p.faixa]}
-                opacity={0.55}
-                className="cursor-pointer"
-                onClick={() => onSelecionarUnidade?.(p.unidade.codigo)}
-              >
-                <title>{p.unidade.nome}</title>
-              </circle>
-            );
-          })}
-
-        {pontos
-          .filter((p) => p.naCarteira)
-          .map((p) => {
-            const { x, y } = projeta(p.unidade.lat!, p.unidade.lng!, L, A);
-            return (
-              <g
-                key={p.unidade.codigo}
-                className="cursor-pointer"
-                onClick={() => onSelecionarUnidade?.(p.unidade.codigo)}
-              >
-                <circle cx={x} cy={y} r="9" fill="var(--bg)" opacity={0.9} />
-                <circle
-                  cx={x}
-                  cy={y}
-                  r="6.5"
-                  fill={COR_FAIXA[p.faixa]}
-                  stroke="var(--bg)"
-                  strokeWidth="2"
-                />
-                <title>{p.unidade.nome}</title>
-              </g>
-            );
-          })}
-
-        {/* Âncoras de localização: pino arrastável por ponto de referência. */}
-        {ancoras.map((a, i) => {
-          const { x, y } = projeta(a.lat, a.lng, L, A);
-          const ativa = ancoraAtiva === a.id;
-          return (
-            <g
-              key={a.id}
-              transform={`translate(${x} ${y})`}
-              className="cursor-grab"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                setArrastando(a.id);
-              }}
-            >
-              <path
-                d="M0 2 C -7 -6, -11 -11, 0 -22 C 11 -11, 7 -6, 0 2 Z"
-                fill="var(--brand)"
-                stroke="var(--bg)"
-                strokeWidth="2"
-                opacity={ativa ? 1 : 0.85}
-              />
-              <circle cy="-13" r="3.5" fill="var(--bg)" />
-              <text
-                y="16"
-                textAnchor="middle"
-                fontSize="12"
-                fontWeight="600"
-                fill="var(--ink)"
-                stroke="var(--bg)"
-                strokeWidth="3"
-                paintOrder="stroke"
-              >
-                {a.rotulo}
-              </text>
-              <title>{`${a.rotulo} — arraste para reposicionar (prioridade ${i + 1})`}</title>
-            </g>
-          );
-        })}
-      </svg>
-
+      <div
+        ref={container}
+        className="mapa-tela w-full"
+        style={{ height: "clamp(300px, 46vw, 460px)" }}
+        role="application"
+        aria-label={
+          pontos.length > 0
+            ? `Mapa do Rio de Janeiro com ${pontos.length} creches no seu alcance e ${ancoras.length} ponto(s) de referência`
+            : `Mapa do Rio de Janeiro com ${ancoras.length} ponto(s) de referência arrastável(is)`
+        }
+      />
       <p
         className="px-3 py-2 text-micro"
         style={{ color: "var(--muted)", borderTop: "1px solid var(--border)" }}
       >
-        Mapa esquemático, sem escala cartográfica. Arraste um pino para corrigir a
-        posição — é ele, não o CEP, que define sua localização.
+        Mapa do município do Rio sobre OpenStreetMap. Arraste um pino para corrigir
+        a posição — é ele, não o CEP, que define sua localização.
       </p>
     </div>
   );

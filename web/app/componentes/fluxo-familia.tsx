@@ -21,15 +21,31 @@ import type {
 import { reavalia } from "@/lib/recomendador/edicao";
 import { CartaoUnidade } from "./cartao-unidade";
 import { Mapa, type PontoMapa } from "./mapa";
+import { BuscaEndereco } from "./busca-endereco";
 import { Botao, Campo, Opcoes, SinalChance } from "./ui";
+import { BoasVindas } from "./familia-boas-vindas";
+import {
+  CaixaOrientacao,
+  CartaoDispensavel,
+  Explicador,
+  GlossarioPapeis,
+  Ressalva,
+} from "./familia-explicadores";
 
-type Etapa = "local" | "deslocamento" | "questionario" | "carteira";
+type Etapa = "boas-vindas" | "local" | "deslocamento" | "questionario" | "carteira";
 
-const ETAPAS: Array<{ id: Etapa; rotulo: string }> = [
-  { id: "local", rotulo: "Onde você está" },
-  { id: "deslocamento", rotulo: "Como se desloca" },
-  { id: "questionario", rotulo: "Sua situação" },
-  { id: "carteira", rotulo: "Sua carteira" },
+/**
+ * As etapas numeradas para a família — só as três em que ela preenche algo.
+ *
+ * Boas-vindas e carteira ficam de fora de propósito: "passo 1 de 3" tem que
+ * contar o trabalho que a pessoa ainda tem pela frente. Contar a tela de
+ * acolhimento como passo faria a barra começar já andada, e contar a entrega
+ * faria parecer que ainda falta preencher algo depois do resultado.
+ */
+const ETAPAS: Array<{ id: Etapa; rotulo: string; curto: string }> = [
+  { id: "local", rotulo: "Onde você está", curto: "Lugares" },
+  { id: "deslocamento", rotulo: "Como se desloca", curto: "Trajeto" },
+  { id: "questionario", rotulo: "Sua situação", curto: "Situação" },
 ];
 
 const CENTRO_RIO = { lat: -22.9068, lng: -43.1861 };
@@ -46,7 +62,7 @@ const PERFIL_INICIAL: Perfil = {
 const ROTULOS_DISPONIVEIS = ["Casa", "Trabalho", "Avó", "Outro ponto"];
 
 export function FluxoFamilia() {
-  const [etapa, setEtapa] = useState<Etapa>("local");
+  const [etapa, setEtapa] = useState<Etapa>("boas-vindas");
   const [perfil, setPerfil] = useState<Perfil>(PERFIL_INICIAL);
   const [ancoraAtiva, setAncoraAtiva] = useState<string | null>("casa");
   const [selecionada, setSelecionada] = useState<string | null>(null);
@@ -111,6 +127,13 @@ export function FluxoFamilia() {
     return pontosUnicos;
   }, [itens, carteira.alternativas]);
 
+  /**
+   * O ponto que a busca de endereço reposiciona: o ativo, ou o primeiro.
+   * Sem isso a família buscaria "Trabalho" e o pino de "Casa" pularia.
+   */
+  const ancoraEditada =
+    perfil.ancoras.find((a) => a.id === ancoraAtiva) ?? perfil.ancoras[0];
+
   const moverAncora = useCallback((id: string, lat: number, lng: number) => {
     setPerfil((p) => ({
       ...p,
@@ -159,31 +182,67 @@ export function FluxoFamilia() {
     setManual(null);
   };
 
-  const indice = ETAPAS.findIndex((e) => e.id === etapa);
+  /**
+   * Troca de etapa sempre volta ao topo.
+   *
+   * No celular a pessoa toca em "Continuar" no fim de uma tela longa; sem
+   * isso ela cai no meio da próxima e não vê o cabeçalho que explica o que
+   * está sendo pedido — justamente a explicação que o fluxo existe para dar.
+   */
+  const irPara = useCallback((destino: Etapa) => {
+    setEtapa(destino);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 pb-20">
       <h1 className="sr-only">Monte sua carteira de creches</h1>
-      <Passos etapa={etapa} onIr={setEtapa} />
+      {etapa !== "boas-vindas" && <Passos etapa={etapa} onIr={irPara} />}
+
+      {etapa === "boas-vindas" && <BoasVindas aoComecar={() => irPara("local")} />}
 
       {etapa === "local" && (
-        <section className="mt-6 flex flex-col gap-5">
+        <section className="mt-5 flex flex-col gap-5">
           <Cabecalho
-            titulo="Marque onde você está"
-            texto="O pino é o que define sua localização — não o CEP. Se você mora em comunidade ou rua sem número, arraste até o ponto certo."
+            titulo="Onde você está no dia a dia"
+            texto="Marque os lugares de onde você sai para levar a criança: sua casa, seu trabalho, a casa de quem ajuda."
           />
-          <Mapa
-            pontos={[]}
-            ancoras={perfil.ancoras}
-            ancoraAtiva={ancoraAtiva}
-            onMoverAncora={moverAncora}
+          <CaixaOrientacao titulo="Por que estamos perguntando isso">
+            <p>
+              Uma creche longe demais de todos os seus pontos não adianta, por
+              melhor que ela seja. Com esses lugares no mapa, a gente só sugere
+              creches que você consegue frequentar de verdade.
+            </p>
+            <p>
+              <strong>A ordem importa:</strong> o primeiro ponto da lista pesa
+              mais na recomendação. Coloque primeiro o lugar de onde você sai
+              na maioria dos dias.
+            </p>
+          </CaixaOrientacao>
+          <BuscaEndereco
+            rotuloAncora={ancoraEditada.rotulo}
+            aoEscolher={(lat, lng) => moverAncora(ancoraEditada.id, lat, lng)}
           />
           <div className="flex flex-col gap-2">
+            <p className="text-body leading-relaxed">
+              <strong>Arraste o pino no mapa</strong> até o ponto certo. É o
+              pino que vale, não o endereço digitado — se você mora em
+              comunidade ou em rua sem número, arrastar é o jeito mais preciso.
+            </p>
+            <Mapa
+              pontos={[]}
+              ancoras={perfil.ancoras}
+              ancoraAtiva={ancoraAtiva}
+              onMoverAncora={moverAncora}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
             <h3 className="text-md font-semibold">
-              Seus pontos de referência
+              Seus lugares, do mais importante para o menos
             </h3>
             <p className="text-sm" style={{ color: "var(--muted)" }}>
-              A ordem importa: o primeiro pesa mais na recomendação.
+              Toque no nome para trocar. Use as setas para mudar a ordem — o
+              número 1 é o que mais pesa.
             </p>
             <ul className="mt-1 flex flex-col gap-2">
               {perfil.ancoras.map((a, i) => (
@@ -247,22 +306,43 @@ export function FluxoFamilia() {
               ))}
             </ul>
             {perfil.ancoras.length < 4 && (
-              <Botao variante="secundario" tamanho="sm" onClick={adicionaAncora} className="self-start">
-                + Adicionar ponto
+              <Botao variante="secundario" onClick={adicionaAncora} className="self-start">
+                + Adicionar outro lugar
               </Botao>
             )}
+            {perfil.ancoras.length === 1 && (
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                Só a casa já funciona. Mas se alguém ajuda a levar a criança,
+                ou se você sai do trabalho para buscar, vale marcar esse lugar
+                também: abre mais creches possíveis para você.
+              </p>
+            )}
           </div>
-          <Navegacao proximo={() => setEtapa("deslocamento")} />
+          <Navegacao proximo={() => irPara("deslocamento")} />
         </section>
       )}
 
       {etapa === "deslocamento" && (
-        <section className="mt-6 flex flex-col gap-6">
+        <section className="mt-5 flex flex-col gap-6">
           <Cabecalho
-            titulo="Como você chega até lá"
-            texto="Creches fora do seu alcance real não vão ser recomendadas — não adianta gastar uma das cinco opções numa vaga que você não conseguiria frequentar."
+            titulo="Como você leva a criança"
+            texto="Agora precisamos saber até onde dá para ir, a idade da criança e o horário de que você precisa."
           />
-          <Campo rotulo="Deslocamento">
+          <CaixaOrientacao titulo="Por que estamos perguntando isso">
+            <p>
+              Essas três respostas definem quais creches entram na conta. Uma
+              creche que fica longe demais para o seu transporte, ou que não
+              tem a turma da idade da sua criança, não vai aparecer na lista.
+            </p>
+            <p>
+              Não adianta gastar uma das suas cinco opções com uma vaga que
+              você não conseguiria frequentar no dia a dia.
+            </p>
+          </CaixaOrientacao>
+          <Campo
+            rotulo="Como você se desloca"
+            ajuda="Escolha o transporte que você usaria na maioria dos dias para levar e buscar."
+          >
             <Opcoes<Modal>
               rotuloGrupo="Como você se desloca"
               valor={perfil.modal}
@@ -277,7 +357,10 @@ export function FluxoFamilia() {
               ]}
             />
           </Campo>
-          <Campo rotulo="Faixa etária da criança">
+          <Campo
+            rotulo="Idade da criança quando começar a creche"
+            ajuda="Cada faixa de idade tem um nome oficial — chamamos de grupamento — e uma quantidade de vagas diferente."
+          >
             <Opcoes<Grupamento>
               rotuloGrupo="Grupamento"
               valor={perfil.grupamento}
