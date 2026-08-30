@@ -1,0 +1,16 @@
+# dados brutos da SME (clonar de CIT-SME-RJ/dadoscreche)
+dados_sme/
+
+# python
+.venv/
+__pycache__/
+
+# node
+node_modules/
+.next/
+.turbo/
+
+# ambiente
+.env
+.env*.local
+.DS_Store
