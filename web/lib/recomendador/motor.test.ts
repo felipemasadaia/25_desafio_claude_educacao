@@ -446,3 +446,15 @@ describe("probabilidade agregada é calibrada, não otimista", () => {
     expect(tres.probabilidadeAgregada).toBeGreaterThan(uma.probabilidadeAgregada);
   });
 });
+
+describe("consistência de apresentação", () => {
+  it("a distância da explicação é a mesma do campo distanciaKm", () => {
+    const catalogo = [unidade({ codigo: "U1", chance_hist: 0.6, km: 1.55 })];
+    const item = recomendar(perfil(), catalogo).itens[0];
+
+    if (item.distanciaKm >= 1) {
+      const naFrase = item.explicacao.match(/(\d+,\d+) km/)?.[1];
+      expect(naFrase).toBe(item.distanciaKm.toFixed(1).replace(".", ","));
+    }
+  });
+});

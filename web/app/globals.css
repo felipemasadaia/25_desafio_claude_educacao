@@ -1,26 +1,222 @@
 @import "tailwindcss";
 
+/*
+ * Tokens do sistema, conforme DESIGN.md.
+ *
+ * Claro é o tema padrão: a cena que decide é uma mãe em pé na fila, sol de
+ * meio-dia batendo numa tela riscada. O escuro é par completo, não filtro.
+ *
+ * Três estados de tema: `data-theme` explícito vence sempre; sem ele, o
+ * sistema decide por prefers-color-scheme.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Superfícies — neutro puro, sem tingimento. A marca vive nos tokens de marca. */
+  --bg: oklch(1 0 0);
+  --surface: oklch(0.985 0 0);
+  --elevated: oklch(1 0 0);
+  --border: oklch(0.9 0.004 268);
+  --border-forte: oklch(0.83 0.006 268);
+  /* Contorno de controle interativo: 3:1 contra o fundo, exigência AA. */
+  --border-controle: oklch(0.66 0.006 268);
+
+  /* Texto */
+  --ink: oklch(0.22 0.008 268);
+  --muted: oklch(0.5 0.01 268);
+
+  /* Marca */
+  --brand: oklch(0.48 0.11 268);
+  --brand-hover: oklch(0.42 0.11 268);
+  --brand-suave: oklch(0.96 0.02 268);
+  --brand-ink: oklch(1 0 0);
+  --accent: oklch(0.55 0.13 195);
+  --accent-suave: oklch(0.96 0.03 195);
+
+  /* Sinal de chance — sempre acompanhado de rótulo e forma, nunca só cor. */
+  --chance-alta: oklch(0.51 0.13 165);
+  --chance-alta-suave: oklch(0.95 0.04 165);
+  --chance-media: oklch(0.54 0.13 85);
+  --chance-media-suave: oklch(0.96 0.05 85);
+  --chance-baixa: oklch(0.545 0.15 45);
+  --chance-baixa-suave: oklch(0.96 0.04 45);
+  --chance-minima: oklch(0.55 0.17 25);
+  --chance-minima-suave: oklch(0.96 0.03 25);
+
+  --sombra: 0 1px 2px oklch(0.22 0.008 268 / 0.06), 0 1px 3px oklch(0.22 0.008 268 / 0.04);
+  --sombra-alta: 0 4px 12px oklch(0.22 0.008 268 / 0.08), 0 2px 4px oklch(0.22 0.008 268 / 0.04);
+
+  /* Tipografia — escala fixa em rem, razão ~1.2. Nunca clamp fluido em UI. */
+  --t-display: 1.75rem;
+  --t-h2: 1.375rem;
+  --t-h3: 1.0625rem;
+  --t-body: 0.9375rem;
+  --t-sm: 0.8125rem;
+  --t-label: 0.75rem;
+
+  --raio: 0.5rem;
+  --raio-sm: 0.375rem;
+  --raio-lg: 0.75rem;
+
+  /* z-index semântico */
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-backdrop: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+
+  --transicao: 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Escuro por preferência do sistema — a não ser que o claro seja explícito. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: oklch(0.16 0 0);
+    --surface: oklch(0.205 0 0);
+    --elevated: oklch(0.245 0 0);
+    --border: oklch(0.3 0.004 268);
+    --border-forte: oklch(0.38 0.006 268);
+    --border-controle: oklch(0.49 0.006 268);
+
+    --ink: oklch(0.95 0.004 268);
+    --muted: oklch(0.71 0.008 268);
+
+    --brand: oklch(0.72 0.11 268);
+    --brand-hover: oklch(0.78 0.11 268);
+    --brand-suave: oklch(0.28 0.05 268);
+    --brand-ink: oklch(0.16 0 0);
+    --accent: oklch(0.74 0.11 195);
+    --accent-suave: oklch(0.27 0.05 195);
+
+    --chance-alta: oklch(0.76 0.12 165);
+    --chance-alta-suave: oklch(0.27 0.05 165);
+    --chance-media: oklch(0.8 0.12 85);
+    --chance-media-suave: oklch(0.28 0.05 85);
+    --chance-baixa: oklch(0.78 0.13 45);
+    --chance-baixa-suave: oklch(0.28 0.06 45);
+    --chance-minima: oklch(0.74 0.14 25);
+    --chance-minima-suave: oklch(0.28 0.06 25);
+
+    --sombra: 0 1px 2px oklch(0 0 0 / 0.3), 0 1px 3px oklch(0 0 0 / 0.2);
+    --sombra-alta: 0 4px 12px oklch(0 0 0 / 0.4), 0 2px 4px oklch(0 0 0 / 0.25);
   }
 }
 
+/* Escolha explícita do usuário vence nos dois sentidos. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: oklch(0.16 0 0);
+  --surface: oklch(0.205 0 0);
+  --elevated: oklch(0.245 0 0);
+  --border: oklch(0.3 0.004 268);
+  --border-forte: oklch(0.38 0.006 268);
+  --border-controle: oklch(0.49 0.006 268);
+
+  --ink: oklch(0.95 0.004 268);
+  --muted: oklch(0.71 0.008 268);
+
+  --brand: oklch(0.72 0.11 268);
+  --brand-hover: oklch(0.78 0.11 268);
+  --brand-suave: oklch(0.28 0.05 268);
+  --brand-ink: oklch(0.16 0 0);
+  --accent: oklch(0.74 0.11 195);
+  --accent-suave: oklch(0.27 0.05 195);
+
+  --chance-alta: oklch(0.76 0.12 165);
+  --chance-alta-suave: oklch(0.27 0.05 165);
+  --chance-media: oklch(0.8 0.12 85);
+  --chance-media-suave: oklch(0.28 0.05 85);
+  --chance-baixa: oklch(0.78 0.13 45);
+  --chance-baixa-suave: oklch(0.28 0.06 45);
+  --chance-minima: oklch(0.74 0.14 25);
+  --chance-minima-suave: oklch(0.28 0.06 25);
+
+  --sombra: 0 1px 2px oklch(0 0 0 / 0.3), 0 1px 3px oklch(0 0 0 / 0.2);
+  --sombra-alta: 0 4px 12px oklch(0 0 0 / 0.4), 0 2px 4px oklch(0 0 0 / 0.25);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-border-forte: var(--border-forte);
+  --color-border-controle: var(--border-controle);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-suave: var(--brand-suave);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-accent-suave: var(--accent-suave);
+  --color-chance-alta: var(--chance-alta);
+  --color-chance-alta-suave: var(--chance-alta-suave);
+  --color-chance-media: var(--chance-media);
+  --color-chance-media-suave: var(--chance-media-suave);
+  --color-chance-baixa: var(--chance-baixa);
+  --color-chance-baixa-suave: var(--chance-baixa-suave);
+  --color-chance-minima: var(--chance-minima);
+  --color-chance-minima-suave: var(--chance-minima-suave);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-token: var(--raio);
+}
+
+* {
+  border-color: var(--border);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-size: var(--t-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Números sempre tabulares: métrica que dança ao atualizar é ruído. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+  letter-spacing: -0.018em;
+  line-height: 1.25;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Foco visível em tudo — requisito AA, e a família navega no teclado do celular. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--raio-sm);
+}
+
+::selection {
+  background: var(--brand-suave);
+  color: var(--ink);
+}
+
+/* Alvo de toque mínimo em toda a face da família. */
+button, a[role="button"], [role="tab"] {
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

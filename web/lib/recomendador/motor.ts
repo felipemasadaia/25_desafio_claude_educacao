@@ -222,7 +222,10 @@ function papelDe(c: Candidata, jaTemAncora: boolean): Papel {
 
 function explica(c: Candidata, papel: Papel): string {
   const local = c.ancora.rotulo.toLowerCase();
-  const perto = c.distanciaKm < 1 ? "a poucos minutos" : `a ${c.distanciaKm.toFixed(1)} km`;
+  const perto =
+    c.distanciaKm < 1
+      ? "a poucos minutos"
+      : `a ${c.distanciaKm.toFixed(1).replace(".", ",")} km`;
 
   if (papel === "ancora") {
     return `Sua aposta mais segura: historicamente a maioria das famílias que pediram esta unidade conseguiu vaga, e ela fica ${perto} de ${local}.`;
@@ -234,6 +237,10 @@ function explica(c: Candidata, papel: Papel): string {
 }
 
 function paraItem(c: Candidata, papel: Papel): ItemCarteira {
+  // Arredonda antes de explicar: a explicação e o rodapé do cartão mostram
+  // a mesma distância, e dois arredondamentos davam "1,5 km" e "1,6 km"
+  // no mesmo cartão.
+  const arredondada = { ...c, distanciaKm: Number(c.distanciaKm.toFixed(1)) };
   return {
     unidade: c.unidade,
     papel,
@@ -241,9 +248,9 @@ function paraItem(c: Candidata, papel: Papel): ItemCarteira {
     faixa: faixaDe(c.chance),
     encaixe: c.encaixe,
     justificadaPor: c.ancora,
-    distanciaKm: Number(c.distanciaKm.toFixed(2)),
+    distanciaKm: arredondada.distanciaKm,
     minutos: c.minutos,
-    explicacao: explica(c, papel),
+    explicacao: explica(arredondada, papel),
   };
 }
 
