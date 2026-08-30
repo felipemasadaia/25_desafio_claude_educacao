@@ -1,15 +1,21 @@
 # Carteira de Creches — Rio de Janeiro
 
+<div align="center">
+
+### ▶ Assista à apresentação
+
+[![Claude Impact Lab — Convoquei: apresentação do projeto](https://img.youtube.com/vi/ZZXvPlF-4ts/maxresdefault.jpg)](https://youtu.be/ZZXvPlF-4ts)
+
+**[youtu.be/ZZXvPlF-4ts](https://youtu.be/ZZXvPlF-4ts)**
+
+</div>
+
+---
+
 Duas ferramentas sobre a mesma base de dados do processo seletivo de creche do
 município do Rio. De um lado a **família**, que precisa escolher até 5 creches sem
 escolher às cegas. Do outro a **Secretaria**, que precisa distinguir déficit real
 de desinformação. As duas faces leem o mesmo motor por lados opostos.
-
-## Vídeo de apresentação
-
-<!-- Substituir pelo link do YouTube quando o vídeo estiver publicado. -->
-
-_A gravar._
 
 ## Acessar
 
